@@ -1,0 +1,52 @@
+.main {
+  min-height: calc(100svh - var(--nav-height));
+  padding-top: var(--nav-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  text-align: center;
+  padding: var(--space-12) var(--space-8);
+  max-width: 520px;
+}
+
+.emoji {
+  font-size: 3.5rem;
+  line-height: 1;
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.description {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--muted);
+  max-width: 420px;
+}
+
+.badge {
+  display: inline-flex;
+  padding: 6px var(--space-4);
+  background: var(--blue-faint);
+  color: var(--blue);
+  border: 1px solid var(--blue-soft);
+  border-radius: var(--radius-full);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-top: var(--space-2);
+}
