@@ -148,39 +148,8 @@ export const PeriodicTable: React.FC = () => {
         </div>
       </div>
 
-      {/* Bottom Bar: Customize Layout & Footer */}
-      <div className="table-footer-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', flexWrap: 'wrap', gap: '12px' }}>
-        <button
-          onClick={() => setIsCustomLayoutOpen(true)}
-          style={{
-            padding: '10px 20px',
-            borderRadius: '24px',
-            border: '1px solid rgba(0,0,0,0.1)',
-            background: 'rgba(255,255,255,0.9)',
-            backdropFilter: 'blur(10px)',
-            fontSize: '13px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="4" y1="21" x2="4" y2="14" />
-            <line x1="4" y1="10" x2="4" y2="3" />
-            <line x1="12" y1="21" x2="12" y2="12" />
-            <line x1="12" y1="8" x2="12" y2="3" />
-            <line x1="20" y1="21" x2="20" y2="16" />
-            <line x1="20" y1="12" x2="20" y2="3" />
-            <line x1="1" y1="14" x2="7" y2="14" />
-            <line x1="9" y1="8" x2="15" y2="8" />
-            <line x1="17" y1="16" x2="23" y2="16" />
-          </svg>
-          <span>Customize Layout</span>
-        </button>
-
+      {/* Bottom Footer Bar */}
+      <div className="table-footer-bar" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <span style={{ fontSize: '12px', color: '#9ca3af' }}>
           &copy; 2026 Philip. All rights reserved.
         </span>

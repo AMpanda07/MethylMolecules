@@ -305,107 +305,91 @@ export const Orbital3DView: React.FC<Orbital3DViewProps> = ({ element }) => {
   }, [element, settings.reduceMotion, generateShellParticles]);
 
   return (
-    <div className="orbitals-container" style={{ display: 'flex', width: '100%', height: '100%' }}>
-      {/* Left Panel: Shells and Shell Population Controls */}
+    <div className="orbitals-container" style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
+      {/* Floating Top Principal Quantum Shell Selector */}
       <div
-        className="orbitals-left-panel"
         style={{
-          width: '260px',
-          background: '#faf8f5',
-          borderRight: '1px solid rgba(0,0,0,0.06)',
-          boxSizing: 'border-box',
-          padding: '24px',
+          position: 'absolute',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 30,
+          background: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '999px',
+          padding: '6px 14px',
           display: 'flex',
-          flexDirection: 'column'
+          alignItems: 'center',
+          gap: '8px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+          border: '1px solid rgba(255,255,255,0.1)'
+        }}
+        role="tablist"
+        aria-label="Electron shell selector"
+      >
+        <span style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', paddingRight: '4px', letterSpacing: '0.5px' }}>
+          QUANTUM SHELL:
+        </span>
+        {SHELL_LABELS.map((lbl, idx) => {
+          const hasElectrons = idx < shellConfigs.length;
+          const isSelected = selectedShell === lbl;
+          return (
+            <button
+              key={lbl}
+              role="tab"
+              aria-selected={isSelected}
+              disabled={!hasElectrons}
+              onClick={() => setSelectedShell(lbl)}
+              aria-label={`Shell ${lbl} (${hasElectrons ? `${shellConfigs[idx]} electrons` : 'Unoccupied'})`}
+              style={{
+                width: '30px',
+                height: '30px',
+                borderRadius: '50%',
+                border: 'none',
+                background: isSelected ? '#38bdf8' : hasElectrons ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
+                color: isSelected ? '#0f172a' : hasElectrons ? '#ffffff' : '#64748b',
+                fontWeight: 800,
+                fontSize: '12px',
+                cursor: hasElectrons ? 'pointer' : 'not-allowed',
+                boxShadow: isSelected ? '0 0 12px rgba(56,189,248,0.5)' : 'none',
+                transform: isSelected ? 'scale(1.08)' : 'scale(1)',
+                transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            >
+              {lbl}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Quantum Model Subtitle Overlay */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '72px',
+          right: '20px',
+          zIndex: 20,
+          background: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(8px)',
+          borderRadius: '12px',
+          padding: '8px 14px',
+          fontSize: '11px',
+          color: '#e2e8f0',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          pointerEvents: 'none',
+          lineHeight: 1.4,
+          maxWidth: '240px'
         }}
       >
-        <div style={{ marginBottom: '20px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#64748b', display: 'block', marginBottom: '10px' }}>
-            PRINCIPAL QUANTUM SHELLS (n)
-          </span>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }} role="tablist" aria-label="Electron shell selector">
-            {SHELL_LABELS.map((lbl, idx) => {
-              const hasElectrons = idx < shellConfigs.length;
-              const isSelected = selectedShell === lbl;
-              return (
-                <button
-                  key={lbl}
-                  role="tab"
-                  aria-selected={isSelected}
-                  disabled={!hasElectrons}
-                  onClick={() => setSelectedShell(lbl)}
-                  aria-label={`Shell ${lbl} (${hasElectrons ? `${shellConfigs[idx]} electrons` : 'Unoccupied'})`}
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    border: 'none',
-                    background: isSelected ? '#0f172a' : hasElectrons ? 'rgba(0,0,0,0.06)' : 'rgba(0,0,0,0.02)',
-                    color: isSelected ? '#ffffff' : hasElectrons ? '#1e293b' : '#94a3b8',
-                    fontWeight: 700,
-                    fontSize: '12px',
-                    cursor: hasElectrons ? 'pointer' : 'not-allowed',
-                    boxShadow: isSelected ? '0 2px 8px rgba(15,23,42,0.3)' : 'none',
-                    transform: isSelected ? 'scale(1.05)' : 'scale(1)',
-                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-                  }}
-                >
-                  {lbl}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Shell Population Bars */}
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#64748b' }}>
-              SHELL POPULATION
-            </span>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>
-              {element.level2_structure?.electrons || element.id} e⁻ total
-            </span>
-          </div>
-
-          {shellConfigs.map((count, idx) => {
-            const max = MAX_SHELL_POPULATIONS[idx] || 8;
-            const pct = Math.min(100, (count / max) * 100);
-            const isCurrent = selectedShell === SHELL_LABELS[idx];
-
-            return (
-              <div key={idx} style={{ marginBottom: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: isCurrent ? 700 : 500, marginBottom: '3px', color: isCurrent ? '#0284c7' : '#334155' }}>
-                  <span>Shell {SHELL_LABELS[idx]} (n={idx + 1})</span>
-                  <span>{count} / {max}</span>
-                </div>
-                <div style={{ height: '4px', background: 'rgba(0,0,0,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
-                  <div
-                    style={{
-                      width: `${pct}%`,
-                      height: '100%',
-                      background: isCurrent ? '#0284c7' : '#0f172a',
-                      borderRadius: '2px',
-                      transition: 'background 0.2s ease'
-                    }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div style={{ marginTop: 'auto', fontSize: '10px', color: '#64748b', lineHeight: 1.4 }}>
-          <strong>Screened Hydrogenic Wavefunction</strong>
-          <br />
-          Displaying quantum probability cloud (|ψ|²) for shell <strong>{selectedShell}</strong>. Click shells above to change active orbital visualization.
+        <div style={{ fontWeight: 700, color: '#38bdf8' }}>Shell {selectedShell} Quantum Cloud (|ψ|²)</div>
+        <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
+          Screened Hydrogenic Wavefunction · {shellConfigs[SHELL_LABELS.indexOf(selectedShell)] || 0} e⁻ occupied
         </div>
       </div>
 
-      {/* Right 3D Viewport */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        <div ref={mountRef} style={{ width: '100%', height: '100%', minHeight: '300px' }} />
-      </div>
+      {/* 3D WebGL Viewport */}
+      <div ref={mountRef} style={{ width: '100%', height: '100%', minHeight: '300px' }} />
     </div>
   );
 };

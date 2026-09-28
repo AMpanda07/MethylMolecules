@@ -29,6 +29,8 @@ export const ElementDetailModal: React.FC = () => {
   const rawElement = detailMap[resolvedId];
   const element = rawElement ? normalizeElementDetail(rawElement) : null;
 
+  const currentId = Number(resolvedId);
+
   const handleClose = () => {
     setSelectedElementId(null);
     const url = new URL(window.location.href);
@@ -40,9 +42,9 @@ export const ElementDetailModal: React.FC = () => {
   if (!element) {
     console.error(`[Zperiod] Element data missing for atomic number ${selectedElementId}`);
     return (
-      <div id="element-modal" className="modal-overlay active" onClick={handleClose}>
+      <div id="element-modal" className="element-detail-overlay active" onClick={handleClose}>
         <div
-          className="modal-content"
+          className="element-detail-modal"
           id="modal-content-primary"
           style={{ padding: '40px', textAlign: 'center', maxWidth: '440px', margin: 'auto' }}
           onClick={(e) => e.stopPropagation()}
@@ -70,8 +72,8 @@ export const ElementDetailModal: React.FC = () => {
   };
 
   const handlePrev = () => {
-    if (selectedElementId > 1) {
-      const prevId = selectedElementId - 1;
+    if (currentId > 1) {
+      const prevId = currentId - 1;
       setSelectedElementId(prevId);
       const prevEl = detailMap[prevId];
       if (prevEl) {
@@ -81,8 +83,8 @@ export const ElementDetailModal: React.FC = () => {
   };
 
   const handleNext = () => {
-    if (selectedElementId < 118) {
-      const nextId = selectedElementId + 1;
+    if (currentId < 118) {
+      const nextId = currentId + 1;
       setSelectedElementId(nextId);
       const nextEl = detailMap[nextId];
       if (nextEl) {
@@ -100,7 +102,6 @@ export const ElementDetailModal: React.FC = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept if an input or textarea is focused
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
         return;
       }
@@ -128,14 +129,14 @@ export const ElementDetailModal: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedElementId, elementDetailTab, isHelpOpen]);
+  }, [currentId, elementDetailTab, isHelpOpen]);
 
   const electronBlock = getElementBlock(element.id);
 
   return (
-    <div id="element-modal" className="modal-overlay active" onClick={handleClose}>
+    <div id="element-modal" className="element-detail-overlay active" onClick={handleClose}>
       <div
-        className={`modal-content ${elementDetailTab === 'archive' ? 'archive-lens-active' : ''}`}
+        className={`element-detail-modal ${elementDetailTab === 'archive' ? 'archive-lens-active' : ''}`}
         id="modal-content-primary"
         onClick={(e) => e.stopPropagation()}
       >
@@ -143,9 +144,9 @@ export const ElementDetailModal: React.FC = () => {
         <button
           className="elem-nav-btn elem-nav-prev"
           id="elem-nav-prev"
-          aria-label={`Previous element: ${selectedElementId > 1 ? detailMap[selectedElementId - 1]?.name : ''}`}
+          aria-label={`Previous element: ${currentId > 1 ? detailMap[currentId - 1]?.name : ''}`}
           onClick={handlePrev}
-          disabled={selectedElementId <= 1}
+          disabled={currentId <= 1}
         >
           <div className="elem-nav-icon">
             <ChevronLeft size={24} />
@@ -155,9 +156,9 @@ export const ElementDetailModal: React.FC = () => {
         <button
           className="elem-nav-btn elem-nav-next"
           id="elem-nav-next"
-          aria-label={`Next element: ${selectedElementId < 118 ? detailMap[selectedElementId + 1]?.name : ''}`}
+          aria-label={`Next element: ${currentId < 118 ? detailMap[currentId + 1]?.name : ''}`}
           onClick={handleNext}
-          disabled={selectedElementId >= 118}
+          disabled={currentId >= 118}
         >
           <div className="elem-nav-icon">
             <ChevronRight size={24} />
@@ -182,7 +183,7 @@ export const ElementDetailModal: React.FC = () => {
           ?
         </button>
 
-        {/* Left Information Pane */}
+        {/* Single Authoritative Left Information Pane */}
         <div className="modal-info-pane">
           <div className="level-header">
             <div className="headline-content">
@@ -205,114 +206,53 @@ export const ElementDetailModal: React.FC = () => {
             </div>
           </div>
 
-          {elementDetailTab === 'orbitals' ? (
-            /* Quantum Shells Panel for Orbitals Mode */
-            <div className="card-info-container" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#8e8e93', marginBottom: '10px' }}>
-                  SHELLS
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {['K', 'L', 'M', 'N', 'O', 'P', 'Q'].map((shell, idx) => {
-                    const occupied = (element.shellConfiguration || [2, 2]).length > idx;
-                    const isActive = idx === ((element.shellConfiguration || [2, 2]).length - 1);
-                    return (
-                      <span
-                        key={shell}
-                        style={{
-                          width: '28px',
-                          height: '28px',
-                          borderRadius: '50%',
-                          background: isActive ? '#0f172a' : occupied ? 'rgba(0,0,0,0.06)' : 'rgba(0,0,0,0.02)',
-                          color: isActive ? '#ffffff' : occupied ? '#1e293b' : '#94a3b8',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 700,
-                          fontSize: '12px'
-                        }}
-                      >
-                        {shell}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
+          {/* Standard Chemical Properties Grid */}
+          <div className="card-info-container">
+            <div className="info-row">
+              <span className="info-label">TYPE</span>
+              <span className="info-value" id="l1-type-value">
+                {element.level1_basic?.type || 'Other nonmetal'}
+              </span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">GROUP / PERIOD</span>
+              <span className="info-value" id="l1-group-period-value">
+                {element.level1_basic?.group || '-'} / {element.level1_basic?.period || '-'}
+              </span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">PHASE @ STP</span>
+              <span className="info-value" id="l1-phase-value">
+                {element.level1_basic?.phaseAtSTP || 'Solid'}
+              </span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">ELECTRON BLOCK</span>
+              <span className="info-value" id="l1-electron-block-value">
+                {electronBlock}-block
+              </span>
+            </div>
 
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#8e8e93' }}>
-                    SHELL POPULATION
-                  </span>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#1a1a1a' }}>
-                    {element.id} e⁻
-                  </span>
-                </div>
+            <div className="info-divider"></div>
 
-                {(element.shellConfiguration || [2, 2]).map((count, idx) => {
-                  const maxMap = [2, 8, 18, 32, 32, 18, 8];
-                  const max = maxMap[idx] || 8;
-                  const pct = (count / max) * 100;
-                  const labels = ['K', 'L', 'M', 'N', 'O', 'P', 'Q'];
-                  return (
-                    <div key={idx} style={{ marginBottom: '12px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
-                        <span>{labels[idx]}</span>
-                        <span>{count}/{max}</span>
-                      </div>
-                      <div style={{ height: '5px', background: 'rgba(0,0,0,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
-                        <div style={{ width: `${pct}%`, height: '100%', background: '#0f172a', borderRadius: '3px' }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div style={{ marginTop: 'auto', paddingTop: '16px', fontSize: '10px', color: '#0284c7', fontWeight: 600 }}>
-                ● CONFIGURATION-AVERAGED DENSITY · SCREENED HYDROGENIC MODEL
+            <div className="ions-section">
+              <div className="info-label">COMMON IONS</div>
+              <div className="ion-item">
+                <span className="ion-symbol">{element.symbol}</span>
+                <span className="ion-name">{element.level1_basic?.commonIons || 'No common ions'}</span>
               </div>
             </div>
-          ) : (
-            /* Standard Chemical Properties Panel for Structure & Archive Modes */
-            <div className="card-info-container">
-              <div className="info-row">
-                <span className="info-label">TYPE</span>
-                <span className="info-value" id="l1-type-value">
-                  {element.level1_basic?.type || 'Other nonmetal'}
-                </span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">GROUP / PERIOD</span>
-                <span className="info-value" id="l1-group-period-value">
-                  {element.level1_basic?.group} / {element.level1_basic?.period}
-                </span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">PHASE @ STP</span>
-                <span className="info-value" id="l1-phase-value">
-                  {element.level1_basic?.phaseAtSTP || 'Solid'}
-                </span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">ELECTRON BLOCK</span>
-                <span className="info-value" id="l1-electron-block-value">
-                  {electronBlock}-block
-                </span>
-              </div>
 
-              <div className="info-divider"></div>
-
-              <div className="ions-section">
-                <div className="info-label">COMMON IONS</div>
-                <div className="ion-item">
-                  <span className="ion-symbol">{element.symbol}</span>
-                  <span className="ion-name">{element.level1_basic?.commonIons || 'No common ions'}</span>
-                </div>
+            {/* Electron Configuration / Shell Summary */}
+            <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+              <div className="info-label" style={{ marginBottom: '6px' }}>SHELL CONFIGURATION</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', fontFamily: 'monospace' }}>
+                {(element.shellConfiguration || [2, 4]).join(' • ')}
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Left panel indicator */}
+          {/* Left panel footer */}
           <div
             className="left-panel-footer"
             style={{
@@ -326,7 +266,7 @@ export const ElementDetailModal: React.FC = () => {
           >
             <div className="pagination-dots" style={{ display: 'flex', gap: '6px' }}>
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: elementDetailTab === 'structure' ? '#0f172a' : 'rgba(0,0,0,0.15)' }}></span>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: elementDetailTab === 'orbitals' ? '#eab308' : 'rgba(0,0,0,0.15)' }}></span>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: elementDetailTab === 'orbitals' ? '#38bdf8' : 'rgba(0,0,0,0.15)' }}></span>
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: elementDetailTab === 'archive' ? '#0284c7' : 'rgba(0,0,0,0.15)' }}></span>
             </div>
             <span style={{ fontSize: '11px', opacity: 0.6, fontWeight: 600 }}>ZPERIOD CHEMINFORMATICS</span>

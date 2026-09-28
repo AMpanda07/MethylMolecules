@@ -144,33 +144,6 @@ export const SettingsView: React.FC = () => {
             <span>{settings.theme === 'dark' ? 'Light Theme' : 'Dark Theme'}</span>
           </button>
         </div>
-
-        {/* Custom Layout Button */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-          <div>
-            <div style={{ fontSize: '15px', fontWeight: 700 }}>Card Layout Customizer</div>
-            <div style={{ fontSize: '13px', color: '#666' }}>Customize periodic table element card geometry & fonts</div>
-          </div>
-          <button
-            onClick={() => setIsCustomLayoutOpen(true)}
-            style={{
-              padding: '8px 18px',
-              borderRadius: '10px',
-              border: '1px solid rgba(0,0,0,0.1)',
-              background: '#fff',
-              color: '#1a1a1a',
-              fontWeight: 700,
-              fontSize: '13px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <SlidersHorizontal size={16} />
-            <span>Customize Cards</span>
-          </button>
-        </div>
       </div>
 
       {/* About Box */}

@@ -7,7 +7,6 @@ import { IonsView } from './features/ions/IonsView';
 import { ChemistryTools } from './features/tools/ChemistryTools';
 import { WorksheetStudio } from './features/worksheet/WorksheetStudio';
 import { SettingsView } from './features/settings/SettingsView';
-import { CardCustomizer } from './features/custom-layout/CardCustomizer';
 import { SearchModal } from './components/SearchModal';
 import elementsGridData from './data/elementsGrid.json';
 import { ElementGridItem } from './types';
@@ -65,9 +64,6 @@ const AppContent: React.FC = () => {
 
       <ErrorBoundary featureName="Element Detail Modal">
         <ElementDetailModal />
-      </ErrorBoundary>
-      <ErrorBoundary featureName="Card Customizer">
-        <CardCustomizer />
       </ErrorBoundary>
       <ErrorBoundary featureName="Element Search">
         <SearchModal />

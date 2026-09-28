@@ -46,7 +46,10 @@ export const Atom3DView: React.FC<Atom3DViewProps> = ({ element }) => {
     // Scene, Camera, Renderer
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.set(0, 0, 15);
+    const shellConfig = element.shellConfiguration || [2, 4];
+    const maxShellRadius = 2.4 + Math.max(0, shellConfig.length - 1) * 1.4;
+    const targetZ = Math.max(8.5, maxShellRadius * 1.55);
+    camera.position.set(0, 0, targetZ);
 
     let renderer: THREE.WebGLRenderer;
     try {
@@ -114,7 +117,6 @@ export const Atom3DView: React.FC<Atom3DViewProps> = ({ element }) => {
     }
 
     // Electron Shells
-    const shellConfig = element.shellConfiguration || [2, 4];
     const electronGroup = new THREE.Group();
     atomGroup.add(electronGroup);
 
