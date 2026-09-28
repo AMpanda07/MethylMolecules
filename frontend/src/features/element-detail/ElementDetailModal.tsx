@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import elementsDetailData from '../../data/elementsDetail.json';
-import { ElementDetailData } from '../../types';
+import elementsGridData from '../../data/elementsGrid.json';
+import { ElementDetailData, ElementGridItem } from '../../types';
 import { useAppStore } from '../../state/useAppStore';
 import { Atom3DView } from '../../three/Atom3DView';
 import { Orbital3DView } from '../../three/Orbital3DView';
@@ -22,7 +23,18 @@ export const ElementDetailModal: React.FC = () => {
   if (selectedElementId === null) return null;
 
   const detailMap = elementsDetailData as unknown as Record<number, any>;
-  const rawElement = detailMap[selectedElementId];
+  let resolvedId = typeof selectedElementId === 'number' ? selectedElementId : Number(selectedElementId);
+
+  // If selectedElementId is a symbol (e.g. "C", "Fe", "Au"), map symbol to atomic number
+  if (isNaN(resolvedId) && typeof selectedElementId === 'string') {
+    const gridList = elementsGridData as ElementGridItem[];
+    const found = gridList.find(e => e.symbol.toLowerCase() === (selectedElementId as string).toLowerCase());
+    if (found) {
+      resolvedId = found.number;
+    }
+  }
+
+  const rawElement = detailMap[resolvedId] || detailMap[selectedElementId];
   const element = rawElement ? normalizeElementDetail(rawElement) : null;
 
   const handleClose = () => {
