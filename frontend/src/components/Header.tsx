@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAppStore } from '../state/useAppStore';
+import { Hand } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
@@ -7,7 +8,9 @@ export const Header: React.FC = () => {
     setCurrentRoute,
     settings,
     setSettings,
-    setIsSearchOpen
+    setIsSearchOpen,
+    isGestureEnabled,
+    setIsGestureEnabled
   } = useAppStore();
 
   const toggleTheme = () => {
@@ -49,25 +52,27 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Right Section: Theme Toggle + Search */}
+      {/* Right Section: Theme Toggle + Gesture Control + Search */}
       <div className="nav-right-section" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <button
+          className="nav-theme-toggle"
+          onClick={() => setIsGestureEnabled(!isGestureEnabled)}
+          aria-label={isGestureEnabled ? 'Disable gesture control' : 'Enable hand gesture control'}
+          title="Hand Gesture Navigation Mode"
+          style={{
+            background: isGestureEnabled ? '#0284c7' : 'rgba(255,255,255,0.8)',
+            color: isGestureEnabled ? '#ffffff' : '#0f172a',
+            borderColor: isGestureEnabled ? '#0284c7' : 'rgba(0,0,0,0.1)'
+          }}
+        >
+          <Hand size={16} />
+        </button>
+
         <button
           className="nav-theme-toggle"
           id="dark-mode-toggle"
           onClick={toggleTheme}
           aria-label={settings.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '50%',
-            border: '1px solid rgba(0,0,0,0.1)',
-            background: 'rgba(255,255,255,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            flexShrink: 0
-          }}
         >
           {settings.theme === 'dark' ? (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

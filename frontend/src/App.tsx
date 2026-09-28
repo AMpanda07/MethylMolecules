@@ -8,6 +8,7 @@ import { ChemistryTools } from './features/tools/ChemistryTools';
 import { WorksheetStudio } from './features/worksheet/WorksheetStudio';
 import { SettingsView } from './features/settings/SettingsView';
 import { SearchModal } from './components/SearchModal';
+import { GestureController } from './features/gesture/GestureController';
 import elementsGridData from './data/elementsGrid.json';
 import { ElementGridItem } from './types';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -67,6 +68,9 @@ const AppContent: React.FC = () => {
       </ErrorBoundary>
       <ErrorBoundary featureName="Element Search">
         <SearchModal />
+      </ErrorBoundary>
+      <ErrorBoundary featureName="Gesture Controller">
+        <GestureController />
       </ErrorBoundary>
     </div>
   );

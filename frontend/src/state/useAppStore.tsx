@@ -113,6 +113,8 @@ interface AppContextType {
   setSelectedIonId: (id: string | null) => void;
   selectedTool: string;
   setSelectedTool: (tool: string) => void;
+  isGestureEnabled: boolean;
+  setIsGestureEnabled: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -129,6 +131,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [settings, setSettings] = useState<AppSettings>(getInitialSettings);
   const [selectedIonId, setSelectedIonId] = useState<string | null>(null);
   const [selectedTool, setSelectedTool] = useState<string>('balancer');
+  const [isGestureEnabled, setIsGestureEnabled] = useState<boolean>(false);
 
   // Synchronize HTML dark mode theme class
   useEffect(() => {
@@ -177,7 +180,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         selectedIonId,
         setSelectedIonId,
         selectedTool,
-        setSelectedTool
+        setSelectedTool,
+        isGestureEnabled,
+        setIsGestureEnabled
       }}
     >
       {children}
