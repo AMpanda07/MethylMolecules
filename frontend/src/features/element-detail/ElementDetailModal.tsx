@@ -1,14 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import elementsDetailData from '../../data/elementsDetail.json';
-import elementsGridData from '../../data/elementsGrid.json';
-import { ElementDetailData, ElementGridItem } from '../../types';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
+import { ElementDetailData } from '../../types';
 import { useAppStore } from '../../state/useAppStore';
-import { Atom3DView } from '../../three/Atom3DView';
-import { Orbital3DView } from '../../three/Orbital3DView';
-import { ArchiveView } from './ArchiveView';
-import { ChevronLeft, ChevronRight, HelpCircle, X, Sparkles, Move3d } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Sparkles, Move3d, Loader2 } from 'lucide-react';
+import { getElementBlock, resolveElementId } from '../../utils/chemistry';
+import { getElementDetails, getCachedElementDetails, prefetchElementDetails } from '../../services/elementService';
 
-import { getElementBlock, normalizeElementDetail, resolveElementId } from '../../utils/chemistry.ts';
+// Dynamic Lazy Imports for Heavy Visualization Components
+const Atom3DView = lazy(() =>
+  import('../../three/Atom3DView').then((m) => ({ default: m.Atom3DView }))
+);
+
+const Orbital3DView = lazy(() =>
+  import('../../three/Orbital3DView').then((m) => ({ default: m.Orbital3DView }))
+);
+
+const ArchiveView = lazy(() =>
+  import('./ArchiveView').then((m) => ({ default: m.ArchiveView }))
+);
+
+// Fallback Loading Skeleton for Visual Viewport
+const ViewportSkeleton: React.FC<{ label: string }> = ({ label }) => (
+  <div
+    style={{
+      width: '100%',
+      height: '100%',
+      minHeight: '320px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'rgba(15, 23, 42, 0.95)',
+      color: '#ffffff',
+      gap: '12px'
+    }}
+  >
+    <Loader2 size={32} className="animate-spin" color="#38bdf8" />
+    <span style={{ fontSize: '13px', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.5px' }}>
+      Loading {label}...
+    </span>
+  </div>
+);
 
 export const ElementDetailModal: React.FC = () => {
   const {
@@ -19,88 +50,109 @@ export const ElementDetailModal: React.FC = () => {
   } = useAppStore();
 
   const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
-
-  if (selectedElementId === null || selectedElementId === undefined) return null;
+  const [element, setElement] = useState<ElementDetailData | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const resolvedId = resolveElementId(selectedElementId);
-  if (resolvedId === null) return null;
+  const currentId = resolvedId !== null ? Number(resolvedId) : 0;
 
-  const detailMap = elementsDetailData as unknown as Record<number, any>;
-  const rawElement = detailMap[resolvedId];
-  const element = rawElement ? normalizeElementDetail(rawElement) : null;
+  // Unconditional Data Loading Effect
+  useEffect(() => {
+    if (resolvedId === null) {
+      setElement(null);
+      setIsLoading(false);
+      setLoadError(null);
+      return;
+    }
 
-  const currentId = Number(resolvedId);
+    // Check in-memory cache first for instant render
+    const cached = getCachedElementDetails(resolvedId);
+    if (cached) {
+      setElement(cached);
+      setIsLoading(false);
+      setLoadError(null);
+      prefetchElementDetails(resolvedId);
+      return;
+    }
 
-  const handleClose = () => {
+    let isSubscribed = true;
+    setIsLoading(true);
+    setLoadError(null);
+
+    getElementDetails(resolvedId)
+      .then((data) => {
+        if (!isSubscribed) return;
+        if (data) {
+          setElement(data);
+          setLoadError(null);
+          prefetchElementDetails(resolvedId);
+        } else {
+          setElement(null);
+          setLoadError(`Chemical detail record for atomic number ${resolvedId} not found.`);
+        }
+      })
+      .catch((err) => {
+        if (!isSubscribed) return;
+        setElement(null);
+        setLoadError(`Failed to load element details: ${err.message || err}`);
+      })
+      .finally(() => {
+        if (isSubscribed) setIsLoading(false);
+      });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [resolvedId, selectedElementId]);
+
+  const handleClose = useCallback(() => {
     setSelectedElementId(null);
     const url = new URL(window.location.href);
     url.searchParams.delete('element');
     url.searchParams.delete('tab');
     window.history.pushState({}, '', url.pathname + (url.search ? url.search : ''));
-  };
+  }, [setSelectedElementId]);
 
-  if (!element) {
-    console.error(`[Zperiod] Element data missing for atomic number ${selectedElementId}`);
-    return (
-      <div id="element-modal" className="element-detail-overlay active" onClick={handleClose}>
-        <div
-          className="element-detail-modal"
-          id="modal-content-primary"
-          style={{ padding: '40px', textAlign: 'center', maxWidth: '440px', margin: 'auto' }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', color: '#ef4444' }}>
-            Element Record Not Found
-          </h3>
-          <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '24px' }}>
-            No chemical data record was found for atomic number {selectedElementId}.
-          </p>
-          <button
-            className="nav-pill-btn active"
-            onClick={handleClose}
-            style={{ padding: '8px 24px', cursor: 'pointer' }}
-          >
-            Return to Periodic Table
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const getElementUrl = (symbol: string, tab: string) => {
+  const getElementUrl = useCallback((symbol: string, tab: string) => {
     return tab === 'structure' ? `?element=${symbol}` : `?element=${symbol}&tab=${tab}`;
-  };
+  }, []);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     if (currentId > 1) {
       const prevId = currentId - 1;
       setSelectedElementId(prevId);
-      const prevEl = detailMap[prevId];
-      if (prevEl) {
-        window.history.pushState({}, '', getElementUrl(prevEl.symbol, elementDetailTab));
-      }
+      getElementDetails(prevId).then((prevEl) => {
+        if (prevEl) {
+          window.history.pushState({}, '', getElementUrl(prevEl.symbol, elementDetailTab));
+        }
+      });
     }
-  };
+  }, [currentId, setSelectedElementId, elementDetailTab, getElementUrl]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentId < 118) {
       const nextId = currentId + 1;
       setSelectedElementId(nextId);
-      const nextEl = detailMap[nextId];
-      if (nextEl) {
-        window.history.pushState({}, '', getElementUrl(nextEl.symbol, elementDetailTab));
-      }
+      getElementDetails(nextId).then((nextEl) => {
+        if (nextEl) {
+          window.history.pushState({}, '', getElementUrl(nextEl.symbol, elementDetailTab));
+        }
+      });
     }
-  };
+  }, [currentId, setSelectedElementId, elementDetailTab, getElementUrl]);
 
-  const handleTabChange = (tab: 'structure' | 'orbitals' | 'archive') => {
+  const handleTabChange = useCallback((tab: 'structure' | 'orbitals' | 'archive') => {
     setElementDetailTab(tab);
     if (element) {
       window.history.replaceState({}, '', getElementUrl(element.symbol, tab));
     }
-  };
+  }, [setElementDetailTab, element, getElementUrl]);
 
+  // Keyboard navigation effect
   useEffect(() => {
+    if (!selectedElementId) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
         return;
@@ -129,7 +181,52 @@ export const ElementDetailModal: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentId, elementDetailTab, isHelpOpen]);
+  }, [selectedElementId, currentId, elementDetailTab, isHelpOpen, handleClose, handlePrev, handleNext, handleTabChange]);
+
+  // Conditional JSX Return ONLY after all hooks execute
+  if (selectedElementId === null || selectedElementId === undefined || resolvedId === null) {
+    return null;
+  }
+
+  if (loadError) {
+    return (
+      <div id="element-modal" className="element-detail-overlay active" onClick={handleClose}>
+        <div
+          className="element-detail-modal"
+          id="modal-content-primary"
+          style={{ padding: '40px', textAlign: 'center', maxWidth: '440px', margin: 'auto' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', color: '#ef4444' }}>
+            Element Record Error
+          </h3>
+          <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '24px' }}>
+            {loadError}
+          </p>
+          <button
+            className="nav-pill-btn active"
+            onClick={handleClose}
+            style={{ padding: '8px 24px', cursor: 'pointer' }}
+          >
+            Return to Periodic Table
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading || !element) {
+    return (
+      <div id="element-modal" className="element-detail-overlay active">
+        <div className="element-detail-modal" style={{ padding: '48px', textAlign: 'center', maxWidth: '400px', margin: 'auto' }}>
+          <Loader2 size={36} className="animate-spin" color="#0284c7" style={{ margin: '0 auto 16px' }} />
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+            Loading Element #{currentId}...
+          </h3>
+        </div>
+      </div>
+    );
+  }
 
   const electronBlock = getElementBlock(element.id);
 
@@ -144,7 +241,7 @@ export const ElementDetailModal: React.FC = () => {
         <button
           className="elem-nav-btn elem-nav-prev"
           id="elem-nav-prev"
-          aria-label={`Previous element: ${currentId > 1 ? detailMap[currentId - 1]?.name : ''}`}
+          aria-label="Previous element"
           onClick={handlePrev}
           disabled={currentId <= 1}
         >
@@ -156,7 +253,7 @@ export const ElementDetailModal: React.FC = () => {
         <button
           className="elem-nav-btn elem-nav-next"
           id="elem-nav-next"
-          aria-label={`Next element: ${currentId < 118 ? detailMap[currentId + 1]?.name : ''}`}
+          aria-label="Next element"
           onClick={handleNext}
           disabled={currentId >= 118}
         >
@@ -273,12 +370,14 @@ export const ElementDetailModal: React.FC = () => {
           </div>
         </div>
 
-        {/* Right 3D & Visual Pane */}
+        {/* Right 3D & Visual Pane with Suspense */}
         <div className="modal-visual-pane">
           <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-            {elementDetailTab === 'structure' && <Atom3DView element={element} />}
-            {elementDetailTab === 'orbitals' && <Orbital3DView element={element} />}
-            {elementDetailTab === 'archive' && <ArchiveView element={element} />}
+            <Suspense fallback={<ViewportSkeleton label={elementDetailTab.toUpperCase()} />}>
+              {elementDetailTab === 'structure' && <Atom3DView element={element} />}
+              {elementDetailTab === 'orbitals' && <Orbital3DView element={element} />}
+              {elementDetailTab === 'archive' && <ArchiveView element={element} />}
+            </Suspense>
           </div>
 
           {/* Bottom View Switcher Bar */}
