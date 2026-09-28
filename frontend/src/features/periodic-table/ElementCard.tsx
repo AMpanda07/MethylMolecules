@@ -43,6 +43,7 @@ export const ElementCard: React.FC<ElementCardProps> = ({ element, onClick, isPl
   const { categoryFilter, customLayout } = useAppStore();
 
   const categoryClass = getCategoryClass(element.category);
+  const rawCategoryClass = categoryClass.replace(/^cat-/, '');
   const isFilteredOut = categoryFilter ? !isCategoryMatch(categoryFilter, element.category) : false;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -65,7 +66,7 @@ export const ElementCard: React.FC<ElementCardProps> = ({ element, onClick, isPl
     const rangeLabel = element.number === 5771 ? 'Lanthanide Series (57-71)' : 'Actinide Series (89-103)';
     return (
       <div
-        className={`element range-block ${categoryClass}`}
+        className={`element range-block ${categoryClass} ${rawCategoryClass}`}
         style={cardStyle}
         onClick={onClick}
         onKeyDown={handleKeyDown}
@@ -85,7 +86,7 @@ export const ElementCard: React.FC<ElementCardProps> = ({ element, onClick, isPl
 
   return (
     <div
-      className={`element ${categoryClass}`}
+      className={`element ${categoryClass} ${rawCategoryClass}`}
       style={cardStyle}
       onClick={onClick}
       onKeyDown={handleKeyDown}

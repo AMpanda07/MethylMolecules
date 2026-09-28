@@ -483,6 +483,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   margin: 0 auto;
   padding: 12px 24px;
   box-sizing: border-box;
+  overflow: visible !important;
 }
 
 #periodic-table {
@@ -492,9 +493,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   gap: 6px;
   width: 100%;
   box-sizing: border-box;
+  overflow: visible !important;
 }
 
 .element {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -505,14 +509,19 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   cursor: pointer;
   user-select: none;
   border: 1px solid rgba(0, 0, 0, 0.05);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.18s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
-.element:hover {
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-  z-index: 10;
+.element:hover,
+.element:focus-visible {
+  position: relative;
+  z-index: 50 !important;
+  transform: translateY(-4px) scale(1.08) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
 }
 
 .element .number {
@@ -540,16 +549,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   color: inherit;
 }
 
-.cat-alkali-metal { background: #ffcccc !important; color: #5d2e2e !important; }
-.cat-alkaline-earth-metal { background: #ffe5cc !important; color: #5d402e !important; }
-.cat-transition-metal { background: #fff0cc !important; color: #5d4e2e !important; }
-.cat-post-transition-metal { background: #d6e5ff !important; color: #2e3e5d !important; }
-.cat-metalloid { background: #d6f5e5 !important; color: #2e5d42 !important; }
-.cat-other-nonmetal { background: #e2ecc8 !important; color: #3c4a22 !important; }
-.cat-halogen { background: #e5f5d6 !important; color: #3e5d2e !important; }
-.cat-noble-gas { background: #f0d6ff !important; color: #4a2e5d !important; }
-.cat-lanthanide { background: #ffe0d6 !important; color: #5d342e !important; }
-.cat-actinide { background: #ffd6e5 !important; color: #5d2e40 !important; }
+.cat-alkali-metal, .element.alkali-metal, .element.cat-alkali-metal { background-color: var(--cat-alkali-bg, #ffcccc); color: var(--cat-alkali-fg, #5d2e2e); }
+.cat-alkaline-earth-metal, .element.alkaline-earth-metal, .element.cat-alkaline-earth-metal { background-color: var(--cat-alkaline-bg, #ffe5cc); color: var(--cat-alkaline-fg, #5d402e); }
+.cat-transition-metal, .element.transition-metal, .element.cat-transition-metal { background-color: var(--cat-transition-bg, #fff0cc); color: var(--cat-transition-fg, #5d4e2e); }
+.cat-post-transition-metal, .element.post-transition-metal, .element.cat-post-transition-metal { background-color: var(--cat-post-bg, #d6e5ff); color: var(--cat-post-fg, #2e3e5d); }
+.cat-metalloid, .element.metalloid, .element.cat-metalloid { background-color: var(--cat-metalloid-bg, #d6f5e5); color: var(--cat-metalloid-fg, #2e5d42); }
+.cat-other-nonmetal, .element.other-nonmetal, .element.cat-other-nonmetal { background-color: var(--cat-other-bg, #e2ecc8); color: var(--cat-other-fg, #3c4a22); }
+.cat-halogen, .element.halogen, .element.cat-halogen { background-color: var(--cat-halogen-bg, #e5f5d6); color: var(--cat-halogen-fg, #3e5d2e); }
+.cat-noble-gas, .element.noble-gas, .element.cat-noble-gas { background-color: var(--cat-noble-bg, #f0d6ff); color: var(--cat-noble-fg, #4a2e5d); }
+.cat-lanthanide, .element.lanthanide, .element.cat-lanthanide { background-color: var(--cat-lanthanide-bg, #ffe0d6); color: var(--cat-lanthanide-fg, #5d342e); }
+.cat-actinide, .element.actinide, .element.cat-actinide { background-color: var(--cat-actinide-bg, #ffd6e5); color: var(--cat-actinide-fg, #5d2e40); }
 
 :root {
     --bg-color: #fdfbf7;

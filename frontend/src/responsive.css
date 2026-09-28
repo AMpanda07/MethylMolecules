@@ -18,7 +18,7 @@
 
 .app-content-stage {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: visible;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   /* sit below the fixed nav (56px nav + 12px top offset = 68px) */
@@ -584,13 +584,18 @@ html, body {
 
 /* Smooth element card hover */
 .element {
+  position: relative;
+  z-index: 1;
   transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1),
               opacity 0.18s ease !important;
   will-change: transform;
 }
 
-.element:hover {
+.element:hover,
+.element:focus-visible {
+  position: relative;
+  z-index: 50 !important;
   transform: translateY(-3px) scale(1.06) !important;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.13) !important;
 }
