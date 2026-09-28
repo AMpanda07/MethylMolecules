@@ -189,7 +189,7 @@ export const ElementDetailModal: React.FC = () => {
               <div className="headline-left-group">
                 <div className="headline-numbers">
                   <span className="headline-mass" id="headline-mass">
-                    {Number(element.level2_structure?.avgMass || element.id * 2).toFixed(1)}
+                    {Math.round(Number(element.level2_structure?.avgMass || element.id * 2))}
                   </span>
                   <span className="headline-atomic" id="headline-atomic">
                     {element.id}
@@ -205,42 +205,112 @@ export const ElementDetailModal: React.FC = () => {
             </div>
           </div>
 
-          <div className="card-info-container">
-            <div className="info-row">
-              <span className="info-label">TYPE</span>
-              <span className="info-value" id="l1-type-value">
-                {element.level1_basic?.type || 'Other nonmetal'}
-              </span>
-            </div>
-            <div className="info-row">
-              <span className="info-label">GROUP / PERIOD</span>
-              <span className="info-value" id="l1-group-period-value">
-                {element.level1_basic?.group} / {element.level1_basic?.period}
-              </span>
-            </div>
-            <div className="info-row">
-              <span className="info-label">PHASE @ STP</span>
-              <span className="info-value" id="l1-phase-value">
-                {element.level1_basic?.phaseAtSTP || 'Solid'}
-              </span>
-            </div>
-            <div className="info-row">
-              <span className="info-label">ELECTRON BLOCK</span>
-              <span className="info-value" id="l1-electron-block-value">
-                {electronBlock}-block
-              </span>
-            </div>
+          {elementDetailTab === 'orbitals' ? (
+            /* Quantum Shells Panel for Orbitals Mode */
+            <div className="card-info-container" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#8e8e93', marginBottom: '10px' }}>
+                  SHELLS
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {['K', 'L', 'M', 'N', 'O', 'P', 'Q'].map((shell, idx) => {
+                    const occupied = (element.shellConfiguration || [2, 2]).length > idx;
+                    const isActive = idx === ((element.shellConfiguration || [2, 2]).length - 1);
+                    return (
+                      <span
+                        key={shell}
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '50%',
+                          background: isActive ? '#0f172a' : occupied ? 'rgba(0,0,0,0.06)' : 'rgba(0,0,0,0.02)',
+                          color: isActive ? '#ffffff' : occupied ? '#1e293b' : '#94a3b8',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 700,
+                          fontSize: '12px'
+                        }}
+                      >
+                        {shell}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
 
-            <div className="info-divider"></div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#8e8e93' }}>
+                    SHELL POPULATION
+                  </span>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#1a1a1a' }}>
+                    {element.id} e⁻
+                  </span>
+                </div>
 
-            <div className="ions-section">
-              <div className="info-label">COMMON IONS</div>
-              <div className="ion-item">
-                <span className="ion-symbol">{element.symbol}</span>
-                <span className="ion-name">{element.level1_basic?.commonIons || 'No common ions'}</span>
+                {(element.shellConfiguration || [2, 2]).map((count, idx) => {
+                  const maxMap = [2, 8, 18, 32, 32, 18, 8];
+                  const max = maxMap[idx] || 8;
+                  const pct = (count / max) * 100;
+                  const labels = ['K', 'L', 'M', 'N', 'O', 'P', 'Q'];
+                  return (
+                    <div key={idx} style={{ marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
+                        <span>{labels[idx]}</span>
+                        <span>{count}/{max}</span>
+                      </div>
+                      <div style={{ height: '5px', background: 'rgba(0,0,0,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ width: `${pct}%`, height: '100%', background: '#0f172a', borderRadius: '3px' }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ marginTop: 'auto', paddingTop: '16px', fontSize: '10px', color: '#0284c7', fontWeight: 600 }}>
+                ● CONFIGURATION-AVERAGED DENSITY · SCREENED HYDROGENIC MODEL
               </div>
             </div>
-          </div>
+          ) : (
+            /* Standard Chemical Properties Panel for Structure & Archive Modes */
+            <div className="card-info-container">
+              <div className="info-row">
+                <span className="info-label">TYPE</span>
+                <span className="info-value" id="l1-type-value">
+                  {element.level1_basic?.type || 'Other nonmetal'}
+                </span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">GROUP / PERIOD</span>
+                <span className="info-value" id="l1-group-period-value">
+                  {element.level1_basic?.group} / {element.level1_basic?.period}
+                </span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">PHASE @ STP</span>
+                <span className="info-value" id="l1-phase-value">
+                  {element.level1_basic?.phaseAtSTP || 'Solid'}
+                </span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">ELECTRON BLOCK</span>
+                <span className="info-value" id="l1-electron-block-value">
+                  {electronBlock}-block
+                </span>
+              </div>
+
+              <div className="info-divider"></div>
+
+              <div className="ions-section">
+                <div className="info-label">COMMON IONS</div>
+                <div className="ion-item">
+                  <span className="ion-symbol">{element.symbol}</span>
+                  <span className="ion-name">{element.level1_basic?.commonIons || 'No common ions'}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Left panel indicator */}
           <div
@@ -255,9 +325,9 @@ export const ElementDetailModal: React.FC = () => {
             }}
           >
             <div className="pagination-dots" style={{ display: 'flex', gap: '6px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#1a1a1a' }}></span>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(0,0,0,0.15)' }}></span>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(0,0,0,0.15)' }}></span>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: elementDetailTab === 'structure' ? '#0f172a' : 'rgba(0,0,0,0.15)' }}></span>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: elementDetailTab === 'orbitals' ? '#eab308' : 'rgba(0,0,0,0.15)' }}></span>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: elementDetailTab === 'archive' ? '#0284c7' : 'rgba(0,0,0,0.15)' }}></span>
             </div>
             <span style={{ fontSize: '11px', opacity: 0.6, fontWeight: 600 }}>ZPERIOD CHEMINFORMATICS</span>
           </div>
