@@ -1,4 +1,41 @@
-import type { ElementDetailData } from '../types';
+import type { ElementDetailData, ElementGridItem } from '../types';
+import elementsGridData from '../data/elementsGrid.json';
+
+/**
+ * Canonical Element ID Resolver
+ * Normalizes numeric IDs, string numeric IDs, symbols, and names to an atomic number 1..118.
+ * Returns null if unresolvable.
+ */
+export const resolveElementId = (input: string | number | null | undefined): number | null => {
+  if (input === null || input === undefined) return null;
+
+  if (typeof input === 'number') {
+    if (isNaN(input) || input < 1 || input > 118) return null;
+    return input;
+  }
+
+  const str = String(input).trim();
+  if (!str) return null;
+
+  const num = Number(str);
+  if (!isNaN(num) && num >= 1 && num <= 118) {
+    return num;
+  }
+
+  const lower = str.toLowerCase();
+  const grid = elementsGridData as ElementGridItem[];
+  const found = grid.find(e =>
+    e.symbol.toLowerCase() === lower ||
+    e.name.toLowerCase() === lower ||
+    String(e.number) === str
+  );
+
+  if (found && typeof found.number === 'number' && found.number >= 1 && found.number <= 118) {
+    return found.number;
+  }
+
+  return null;
+};
 
 /**
  * IUPAC Electron Block Determination

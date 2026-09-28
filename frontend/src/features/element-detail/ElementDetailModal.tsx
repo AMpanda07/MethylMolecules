@@ -8,7 +8,7 @@ import { Orbital3DView } from '../../three/Orbital3DView';
 import { ArchiveView } from './ArchiveView';
 import { ChevronLeft, ChevronRight, HelpCircle, X, Sparkles, Move3d } from 'lucide-react';
 
-import { getElementBlock, normalizeElementDetail } from '../../utils/chemistry.ts';
+import { getElementBlock, normalizeElementDetail, resolveElementId } from '../../utils/chemistry.ts';
 
 export const ElementDetailModal: React.FC = () => {
   const {
@@ -20,21 +20,13 @@ export const ElementDetailModal: React.FC = () => {
 
   const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
 
-  if (selectedElementId === null) return null;
+  if (selectedElementId === null || selectedElementId === undefined) return null;
+
+  const resolvedId = resolveElementId(selectedElementId);
+  if (resolvedId === null) return null;
 
   const detailMap = elementsDetailData as unknown as Record<number, any>;
-  let resolvedId = typeof selectedElementId === 'number' ? selectedElementId : Number(selectedElementId);
-
-  // If selectedElementId is a symbol (e.g. "C", "Fe", "Au"), map symbol to atomic number
-  if (isNaN(resolvedId) && typeof selectedElementId === 'string') {
-    const gridList = elementsGridData as ElementGridItem[];
-    const found = gridList.find(e => e.symbol.toLowerCase() === (selectedElementId as string).toLowerCase());
-    if (found) {
-      resolvedId = found.number;
-    }
-  }
-
-  const rawElement = detailMap[resolvedId] || detailMap[selectedElementId];
+  const rawElement = detailMap[resolvedId];
   const element = rawElement ? normalizeElementDetail(rawElement) : null;
 
   const handleClose = () => {

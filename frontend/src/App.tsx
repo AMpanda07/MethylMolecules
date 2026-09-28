@@ -12,6 +12,7 @@ import { SearchModal } from './components/SearchModal';
 import elementsGridData from './data/elementsGrid.json';
 import { ElementGridItem } from './types';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { resolveElementId } from './utils/chemistry';
 
 const AppContent: React.FC = () => {
   const { currentRoute, setSelectedElementId, setElementDetailTab } = useAppStore();
@@ -28,15 +29,8 @@ const AppContent: React.FC = () => {
       }
 
       if (elemParam) {
-        const gridList = elementsGridData as ElementGridItem[];
-        const found = gridList.find(e =>
-          e.symbol.toLowerCase() === elemParam.toLowerCase() ||
-          e.name.toLowerCase() === elemParam.toLowerCase() ||
-          e.number.toString() === elemParam
-        );
-        if (found) {
-          setSelectedElementId(found.number);
-        }
+        const resolved = resolveElementId(elemParam);
+        setSelectedElementId(resolved);
       } else {
         setSelectedElementId(null);
       }
