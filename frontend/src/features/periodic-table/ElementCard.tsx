@@ -45,6 +45,13 @@ export const ElementCard: React.FC<ElementCardProps> = ({ element, onClick, isPl
   const categoryClass = getCategoryClass(element.category);
   const isFilteredOut = categoryFilter ? !isCategoryMatch(categoryFilter, element.category) : false;
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   const cardStyle: React.CSSProperties = {
     gridRow: element.row,
     gridColumn: element.column,
@@ -55,11 +62,17 @@ export const ElementCard: React.FC<ElementCardProps> = ({ element, onClick, isPl
   };
 
   if (isPlaceholder) {
+    const rangeLabel = element.number === 5771 ? 'Lanthanide Series (57-71)' : 'Actinide Series (89-103)';
     return (
       <div
         className={`element range-block ${categoryClass}`}
         style={cardStyle}
         onClick={onClick}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        role="button"
+        aria-label={rangeLabel}
+        title={`Filter table by ${rangeLabel}`}
       >
         <span className="number">{element.number === 5771 ? '57-71' : '89-103'}</span>
         <span className="symbol" style={{ fontSize: '14px', fontWeight: 800 }}>{element.symbol}</span>
@@ -68,11 +81,18 @@ export const ElementCard: React.FC<ElementCardProps> = ({ element, onClick, isPl
     );
   }
 
+  const tooltipText = `#${element.number} ${element.name} (${element.symbol}) · ${element.category}`;
+
   return (
     <div
       className={`element ${categoryClass}`}
       style={cardStyle}
       onClick={onClick}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+      role="button"
+      aria-label={`View details for ${element.name} (${element.symbol}), atomic number ${element.number}`}
+      title={tooltipText}
       data-number={element.number}
       data-symbol={element.symbol}
     >
