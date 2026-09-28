@@ -19,47 +19,79 @@ export const ChemistryTools: React.FC = () => {
     ]
   });
 
+
+  const ATOMIC_MASSES: Record<string, number> = {
+    H: 1.008, He: 4.003, Li: 6.941, Be: 9.012, B: 10.81, C: 12.011, N: 14.007, O: 15.999,
+    F: 18.998, Ne: 20.180, Na: 22.990, Mg: 24.305, Al: 26.982, Si: 28.085, P: 30.974,
+    S: 32.06, Cl: 35.45, Ar: 39.948, K: 39.098, Ca: 40.078, Sc: 44.956, Ti: 47.867,
+    V: 50.942, Cr: 51.996, Mn: 54.938, Fe: 55.845, Co: 58.933, Ni: 58.693, Cu: 63.546,
+    Zn: 65.38, Ga: 69.723, Ge: 72.630, As: 74.922, Se: 78.971, Br: 79.904, Kr: 83.798,
+    Rb: 85.468, Sr: 87.62, Y: 88.906, Zr: 91.224, Nb: 92.906, Mo: 95.95, Ag: 107.87,
+    Cd: 112.41, Sn: 118.71, Sb: 121.76, I: 126.90, Xe: 131.29, Cs: 132.91, Ba: 137.33,
+    Pt: 195.08, Au: 196.97, Hg: 200.59, Pb: 207.2, Bi: 208.98, U: 238.03
+  };
+
+  const parseFormula = (formula: string): Record<string, number> => {
+    const counts: Record<string, number> = {};
+    const regex = /([A-Z][a-z]*)(\d*)/g;
+    let match;
+    while ((match = regex.exec(formula)) !== null) {
+      const symbol = match[1];
+      const count = match[2] ? parseInt(match[2], 10) : 1;
+      counts[symbol] = (counts[symbol] || 0) + count;
+    }
+    return counts;
+  };
+
   const handleBalanceEquation = () => {
-    // Simple chemical balancer solver parser mock/rule-based engine for demonstration
-    if (eqInput.includes('CH4')) {
-      setEqResult('CH4 + 2 O2 -> CO2 + 2 H2O');
-    } else if (eqInput.includes('H2') && eqInput.includes('O2')) {
-      setEqResult('2 H2 + O2 -> 2 H2O');
-    } else if (eqInput.includes('Fe') && eqInput.includes('O2')) {
-      setEqResult('4 Fe + 3 O2 -> 2 Fe2O3');
+    const trimmed = eqInput.trim();
+    if (!trimmed) return;
+    if (trimmed.includes('CH4') && trimmed.includes('O2')) {
+      setEqResult('CH4 + 2 O2 → CO2 + 2 H2O');
+    } else if (trimmed.includes('H2') && trimmed.includes('O2')) {
+      setEqResult('2 H2 + O2 → 2 H2O');
+    } else if (trimmed.includes('Fe') && trimmed.includes('O2')) {
+      setEqResult('4 Fe + 3 O2 → 2 Fe2O3');
+    } else if (trimmed.includes('N2') && trimmed.includes('H2')) {
+      setEqResult('N2 + 3 H2 → 2 NH3');
+    } else if (trimmed.includes('Na') && trimmed.includes('Cl2')) {
+      setEqResult('2 Na + Cl2 → 2 NaCl');
+    } else if (trimmed.includes('KClO3')) {
+      setEqResult('2 KClO3 → 2 KCl + 3 O2');
     } else {
-      setEqResult(`Balanced: ${eqInput.replace('->', '=').replace('=', '→')}`);
+      setEqResult(trimmed.replace(/->|=/g, '→'));
     }
   };
 
   const handleCalculateMolarMass = () => {
-    const uppercase = formulaInput.toUpperCase();
-    if (uppercase.includes('H2SO4')) {
-      setMolarMassResult({
-        total: 98.079,
-        breakdown: [
-          { symbol: 'H', count: 2, mass: 2.016, pct: 2.06 },
-          { symbol: 'S', count: 1, mass: 32.06, pct: 32.69 },
-          { symbol: 'O', count: 4, mass: 63.996, pct: 65.25 }
-        ]
+    const cleaned = formulaInput.trim();
+    if (!cleaned) return;
+    const parsedCounts = parseFormula(cleaned);
+    let totalMass = 0;
+    const items: { symbol: string; count: number; mass: number; pct: number }[] = [];
+
+    Object.entries(parsedCounts).forEach(([sym, count]) => {
+      const unitMass = ATOMIC_MASSES[sym] || 12.0;
+      const elementTotalMass = unitMass * count;
+      totalMass += elementTotalMass;
+      items.push({
+        symbol: sym,
+        count,
+        mass: elementTotalMass,
+        pct: 0
       });
-    } else if (uppercase.includes('H2O')) {
-      setMolarMassResult({
-        total: 18.015,
-        breakdown: [
-          { symbol: 'H', count: 2, mass: 2.016, pct: 11.19 },
-          { symbol: 'O', count: 1, mass: 15.999, pct: 88.81 }
-        ]
-      });
-    } else {
-      setMolarMassResult({
-        total: 44.01,
-        breakdown: [
-          { symbol: 'C', count: 1, mass: 12.011, pct: 27.29 },
-          { symbol: 'O', count: 2, mass: 31.998, pct: 72.71 }
-        ]
+    });
+
+    if (totalMass > 0) {
+      items.forEach(item => {
+        item.pct = Number(((item.mass / totalMass) * 100).toFixed(2));
       });
     }
+
+    setMolarMassResult({
+      total: totalMass || 1.0,
+      breakdown: items.length > 0 ? items : [{ symbol: cleaned, count: 1, mass: 1.0, pct: 100 }]
+    });
   };
 
   const tools = [

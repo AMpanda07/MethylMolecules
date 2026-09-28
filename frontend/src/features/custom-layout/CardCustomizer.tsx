@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../state/useAppStore';
 import { CardCustomizerSettings } from '../../types';
 import { X, RotateCcw, Check } from 'lucide-react';
@@ -12,6 +12,12 @@ export const CardCustomizer: React.FC = () => {
   } = useAppStore();
 
   const [localSettings, setLocalSettings] = useState<CardCustomizerSettings>(customLayout);
+
+  useEffect(() => {
+    if (isCustomLayoutOpen) {
+      setLocalSettings(customLayout);
+    }
+  }, [isCustomLayoutOpen, customLayout]);
 
   if (!isCustomLayoutOpen) return null;
 

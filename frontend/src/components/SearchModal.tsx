@@ -72,6 +72,7 @@ export const SearchModal: React.FC = () => {
                 className="search-result-row"
                 onClick={() => {
                   setSelectedElementId(el.number);
+                  window.history.pushState({}, '', `?element=${el.symbol}`);
                   setIsSearchOpen(false);
                 }}
               >

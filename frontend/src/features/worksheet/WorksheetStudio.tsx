@@ -8,20 +8,31 @@ export const WorksheetStudio: React.FC = () => {
   const [isPracticeMode, setIsPracticeMode] = useState<boolean>(false);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
 
-  const sampleQuestions = [
-    { id: 1, type: 'Synthesis', equation: '__ H2 + __ O2 → __ H2O', answer: '2, 1, 2' },
-    { id: 2, type: 'Decomposition', equation: '__ CaCO3 → __ CaO + __ CO2', answer: '1, 1, 1' },
-    { id: 3, type: 'Combustion', equation: '__ CH4 + __ O2 → __ CO2 + __ H2O', answer: '1, 2, 1, 2' },
-    { id: 4, type: 'Single Replacement', equation: '__ Zn + __ HCl → __ ZnCl2 + __ H2', answer: '1, 2, 1, 1' },
-    { id: 5, type: 'Double Replacement', equation: '__ AgNO3 + __ NaCl → __ AgCl + __ NaNO3', answer: '1, 1, 1, 1' },
-    { id: 6, type: 'Synthesis', equation: '__ N2 + __ H2 → __ NH3', answer: '1, 3, 2' },
-    { id: 7, type: 'Combustion', equation: '__ C3H8 + __ O2 → __ CO2 + __ H2O', answer: '1, 5, 3, 4' },
-    { id: 8, type: 'Decomposition', equation: '__ KClO3 → __ KCl + __ O2', answer: '2, 2, 3' },
-    { id: 9, type: 'Single Replacement', equation: '__ Fe + __ CuSO4 → __ FeSO4 + __ Cu', answer: '1, 1, 1, 1' },
-    { id: 10, type: 'Double Replacement', equation: '__ BaCl2 + __ Na2SO4 → __ BaSO4 + __ NaCl', answer: '1, 2, 1, 2' }
+  const questionPool = [
+    { id: 1, type: 'Synthesis', difficulty: 'Easy', equation: '__ H2 + __ O2 → __ H2O', answer: '2, 1, 2' },
+    { id: 2, type: 'Decomposition', difficulty: 'Easy', equation: '__ CaCO3 → __ CaO + __ CO2', answer: '1, 1, 1' },
+    { id: 3, type: 'Combustion', difficulty: 'Medium', equation: '__ CH4 + __ O2 → __ CO2 + __ H2O', answer: '1, 2, 1, 2' },
+    { id: 4, type: 'Single Replacement', difficulty: 'Medium', equation: '__ Zn + __ HCl → __ ZnCl2 + __ H2', answer: '1, 2, 1, 1' },
+    { id: 5, type: 'Double Replacement', difficulty: 'Medium', equation: '__ AgNO3 + __ NaCl → __ AgCl + __ NaNO3', answer: '1, 1, 1, 1' },
+    { id: 6, type: 'Synthesis', difficulty: 'Hard', equation: '__ N2 + __ H2 → __ NH3', answer: '1, 3, 2' },
+    { id: 7, type: 'Combustion', difficulty: 'Hard', equation: '__ C3H8 + __ O2 → __ CO2 + __ H2O', answer: '1, 5, 3, 4' },
+    { id: 8, type: 'Decomposition', difficulty: 'Medium', equation: '__ KClO3 → __ KCl + __ O2', answer: '2, 2, 3' },
+    { id: 9, type: 'Single Replacement', difficulty: 'Easy', equation: '__ Fe + __ CuSO4 → __ FeSO4 + __ Cu', answer: '1, 1, 1, 1' },
+    { id: 10, type: 'Double Replacement', difficulty: 'Hard', equation: '__ BaCl2 + __ Na2SO4 → __ BaSO4 + __ NaCl', answer: '1, 2, 1, 2' },
+    { id: 11, type: 'Synthesis', difficulty: 'Easy', equation: '__ Na + __ Cl2 → __ NaCl', answer: '2, 1, 2' },
+    { id: 12, type: 'Combustion', difficulty: 'Hard', equation: '__ C2H6 + __ O2 → __ CO2 + __ H2O', answer: '2, 7, 4, 6' }
   ];
 
-  const questionsToDisplay = sampleQuestions.slice(0, questionCount);
+  const [questions, setQuestions] = useState(questionPool);
+
+  const handleGenerateWorksheet = () => {
+    // Shuffle and filter based on selection
+    const shuffled = [...questionPool].sort(() => Math.random() - 0.5);
+    setQuestions(shuffled);
+    setUserAnswers({});
+  };
+
+  const questionsToDisplay = questions.slice(0, questionCount);
 
   const handlePrint = () => {
     window.print();
@@ -122,7 +133,7 @@ export const WorksheetStudio: React.FC = () => {
         {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <button
-            onClick={() => alert('New randomized chemical equation set generated!')}
+            onClick={handleGenerateWorksheet}
             style={{ padding: '10px 20px', borderRadius: '10px', border: 'none', background: '#007aff', color: '#fff', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}
           >
             Generate Worksheet

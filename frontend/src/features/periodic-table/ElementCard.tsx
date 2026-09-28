@@ -22,11 +22,28 @@ export const getCategoryClass = (category: string): string => {
   return 'cat-other-nonmetal';
 };
 
+export const isCategoryMatch = (filter: string, elementCat: string): boolean => {
+  const f = filter.toLowerCase().trim();
+  const c = elementCat.toLowerCase().trim();
+  if (f === c) return true;
+  if (f.includes('alkaline') && c.includes('alkaline')) return true;
+  if (f.includes('alkali') && !f.includes('alkaline') && c.includes('alkali') && !c.includes('alkaline')) return true;
+  if (f.includes('transition') && !f.includes('post') && c.includes('transition') && !c.includes('post')) return true;
+  if (f.includes('post') && c.includes('post')) return true;
+  if (f.includes('metalloid') && c.includes('metalloid')) return true;
+  if (f.includes('halogen') && c.includes('halogen')) return true;
+  if (f.includes('noble') && c.includes('noble')) return true;
+  if (f.includes('lanthan') && c.includes('lanthan')) return true;
+  if (f.includes('actin') && c.includes('actin')) return true;
+  if (f.includes('nonmetal') && c.includes('nonmetal')) return true;
+  return false;
+};
+
 export const ElementCard: React.FC<ElementCardProps> = ({ element, onClick, isPlaceholder }) => {
   const { categoryFilter, customLayout } = useAppStore();
 
   const categoryClass = getCategoryClass(element.category);
-  const isFilteredOut = categoryFilter && categoryFilter.toLowerCase() !== element.category.toLowerCase();
+  const isFilteredOut = categoryFilter ? !isCategoryMatch(categoryFilter, element.category) : false;
 
   const cardStyle: React.CSSProperties = {
     gridRow: element.row,
