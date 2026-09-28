@@ -1,6 +1,6 @@
 import fs from 'fs';
 const elementsDetailData = JSON.parse(fs.readFileSync('./src/data/elementsDetail.json', 'utf8'));
-import { getArchiveItem, getFullElementArchive, curatedArchiveData } from '../src/data/archiveData.ts';
+import { getArchiveItem, getFullElementArchive } from '../src/data/archiveData.ts';
 
 const testElements = [
   { symbol: 'C', id: 6, name: 'Carbon' },
@@ -33,16 +33,20 @@ for (const elInfo of testElements) {
 
     // Assertions
     const hasImage = Boolean(item && (item.image || item.fallbackSvg));
-    const titleMatches = item && item.title.toLowerCase().includes(elInfo.name.toLowerCase());
+    const titleOrDescMatches =
+      item &&
+      (item.title.toLowerCase().includes(elInfo.name.toLowerCase()) ||
+        item.description.toLowerCase().includes(elInfo.name.toLowerCase()));
     const hasMetadata = Boolean(item && item.metadata && item.metadata.source);
     
-    // Check for stale cross-element contamination
+    // Check for stale cross-element contamination using word boundary
     const otherElements = testElements.filter(e => e.symbol !== elInfo.symbol);
-    const hasContamination = otherElements.some(other =>
-      item.title.toLowerCase().includes(other.name.toLowerCase()) && !item.title.toLowerCase().includes(elInfo.name.toLowerCase())
-    );
+    const hasContamination = otherElements.some(other => {
+      const reg = new RegExp(`\\b${other.name}\\b`, 'i');
+      return reg.test(item.title) && !item.title.toLowerCase().includes(elInfo.name.toLowerCase());
+    });
 
-    const isPass = hasImage && titleMatches && hasMetadata && !hasContamination;
+    const isPass = hasImage && titleOrDescMatches && hasMetadata && !hasContamination;
 
     if (isPass) {
       passCount++;

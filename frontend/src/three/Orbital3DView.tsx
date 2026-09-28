@@ -1,18 +1,159 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { ElementDetailData } from '../types';
+import { useAppStore } from '../state/useAppStore';
 
 interface Orbital3DViewProps {
   element: ElementDetailData;
 }
 
+const SHELL_LABELS = ['K', 'L', 'M', 'N', 'O', 'P', 'Q'];
+const MAX_SHELL_POPULATIONS = [2, 8, 18, 32, 32, 18, 8];
+
 export const Orbital3DView: React.FC<Orbital3DViewProps> = ({ element }) => {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [selectedShell, setSelectedShell] = useState<string>('L');
+  const { settings } = useAppStore();
 
-  const shellLabels = ['K', 'L', 'M', 'N', 'O', 'P', 'Q'];
   const shellConfigs = element.shellConfiguration || [2, 4];
+  const initialShell = shellConfigs.length > 1 ? 'L' : 'K';
+  const [selectedShell, setSelectedShell] = useState<string>(initialShell);
 
+  // References to keep Three.js objects across shell changes without rebuilding
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const pointCloudRef = useRef<THREE.Points | null>(null);
+  const geometryRef = useRef<THREE.BufferGeometry | null>(null);
+  const materialRef = useRef<THREE.PointsMaterial | null>(null);
+  const isDraggingRef = useRef<boolean>(false);
+  const previousMousePositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const animFrameRef = useRef<number>(0);
+  const particleCountRef = useRef<number>(16000);
+
+  // Generate shell-specific quantum probability particle distribution
+  const generateShellParticles = useCallback((shell: string, count: number, positions: Float32Array, colors: Float32Array) => {
+    const shellIndex = SHELL_LABELS.indexOf(shell);
+    const n = Math.max(1, shellIndex + 1);
+
+    // Shell-specific color palettes
+    const palettes: Record<string, { inner: THREE.Color; mid: THREE.Color; outer: THREE.Color }> = {
+      K: { inner: new THREE.Color(0xffffff), mid: new THREE.Color(0xfbbf24), outer: new THREE.Color(0xd97706) }, // Gold/Amber core
+      L: { inner: new THREE.Color(0x67e8f9), mid: new THREE.Color(0x06b6d4), outer: new THREE.Color(0x0284c7) }, // Cyan/Electric Blue
+      M: { inner: new THREE.Color(0xf472b6), mid: new THREE.Color(0xc084fc), outer: new THREE.Color(0x7c3aed) }, // Magenta/Purple cloverleaf
+      N: { inner: new THREE.Color(0x34d399), mid: new THREE.Color(0x10b981), outer: new THREE.Color(0x047857) }, // Emerald/Teal
+      O: { inner: new THREE.Color(0xa78bfa), mid: new THREE.Color(0x6366f1), outer: new THREE.Color(0x312e81) }, // Sapphire/Indigo
+      P: { inner: new THREE.Color(0xf87171), mid: new THREE.Color(0xef4444), outer: new THREE.Color(0x991b1b) }, // Crimson/Ruby
+      Q: { inner: new THREE.Color(0xfbcfe8), mid: new THREE.Color(0xdb2777), outer: new THREE.Color(0x831843) }  // Rose
+    };
+
+    const palette = palettes[shell] || palettes.L;
+    const baseRadius = 1.3 * n;
+
+    for (let i = 0; i < count; i++) {
+      let x = 0, y = 0, z = 0;
+
+      if (n === 1) {
+        // K Shell: Pure 1s Spherical Gaussian Wavefunction |ψ_1s|^2 ~ e^(-2r)
+        const u1 = Math.max(1e-6, Math.random());
+        const u2 = Math.random();
+        const r = 1.6 * Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos((Math.random() * 2) - 1);
+        x = r * Math.sin(phi) * Math.cos(theta);
+        y = r * Math.sin(phi) * Math.sin(theta);
+        z = r * Math.cos(phi);
+      } else if (n === 2) {
+        // L Shell: 2s (sphere with nodal gap) + 2p (3 orthogonal dumbbell lobes along X, Y, Z)
+        const mode = Math.random();
+        if (mode < 0.25) {
+          // 2s radial node
+          const r = 2.4 + (Math.random() * 2.2);
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos((Math.random() * 2) - 1);
+          x = r * Math.sin(phi) * Math.cos(theta);
+          y = r * Math.sin(phi) * Math.sin(theta);
+          z = r * Math.cos(phi);
+        } else {
+          // 2p lobes: dumbbell probability distribution (cos^2 or sin^2)
+          const axisChoice = Math.floor(Math.random() * 3);
+          const u = (Math.random() * 2 - 1);
+          const lobeLen = 3.6 * Math.cbrt(Math.abs(u)) * Math.sign(u);
+          const spread = 0.8 * Math.sqrt(Math.max(0, 1 - Math.pow(lobeLen / 3.6, 2)));
+          const angle = Math.random() * Math.PI * 2;
+          const w1 = spread * Math.cos(angle);
+          const w2 = spread * Math.sin(angle);
+
+          if (axisChoice === 0) {
+            x = lobeLen; y = w1; z = w2;
+          } else if (axisChoice === 1) {
+            x = w1; y = lobeLen; z = w2;
+          } else {
+            x = w1; y = w2; z = lobeLen;
+          }
+        }
+      } else if (n === 3) {
+        // M Shell: 3s + 3p + 3d cloverleaf lobes
+        const mode = Math.random();
+        if (mode < 0.2) {
+          const r = 4.2 + Math.random() * 2.5;
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos((Math.random() * 2) - 1);
+          x = r * Math.sin(phi) * Math.cos(theta);
+          y = r * Math.sin(phi) * Math.sin(theta);
+          z = r * Math.cos(phi);
+        } else {
+          // 3d cloverleaf lobes: 4 lobes in XY plane or donut ring
+          const theta = Math.random() * Math.PI * 2;
+          const r = 5.2 * (0.6 + 0.4 * Math.sin(2 * theta));
+          const zSpread = (Math.random() - 0.5) * 2.2;
+          x = r * Math.cos(theta);
+          y = r * Math.sin(theta);
+          z = zSpread;
+        }
+      } else {
+        // N, O, P, Q Shells: Broad higher-order wavefunctions with radial nodes
+        const r = (baseRadius * 0.8) + (Math.random() * baseRadius * 0.7);
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos((Math.random() * 2) - 1);
+        x = r * Math.sin(phi) * Math.cos(theta);
+        y = r * Math.sin(phi) * Math.sin(theta);
+        z = r * Math.cos(phi);
+      }
+
+      positions[i * 3] = x;
+      positions[i * 3 + 1] = y;
+      positions[i * 3 + 2] = z;
+
+      // Distance-based color interpolation
+      const dist = Math.sqrt(x * x + y * y + z * z);
+      const normalizedDist = Math.min(dist / (baseRadius * 1.5), 1);
+      const color = new THREE.Color();
+
+      if (normalizedDist < 0.4) {
+        color.lerpColors(palette.inner, palette.mid, normalizedDist / 0.4);
+      } else {
+        color.lerpColors(palette.mid, palette.outer, (normalizedDist - 0.4) / 0.6);
+      }
+
+      colors[i * 3] = color.r;
+      colors[i * 3 + 1] = color.g;
+      colors[i * 3 + 2] = color.b;
+    }
+  }, []);
+
+  // Update existing buffer in-place when shell changes without re-initializing WebGL scene
+  useEffect(() => {
+    const geometry = geometryRef.current;
+    if (!geometry) return;
+
+    const positions = geometry.attributes.position.array as Float32Array;
+    const colors = geometry.attributes.color.array as Float32Array;
+    generateShellParticles(selectedShell, particleCountRef.current, positions, colors);
+
+    geometry.attributes.position.needsUpdate = true;
+    geometry.attributes.color.needsUpdate = true;
+  }, [selectedShell, generateShellParticles]);
+
+  // One-time Three.js scene initialization per element
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
@@ -20,116 +161,89 @@ export const Orbital3DView: React.FC<Orbital3DViewProps> = ({ element }) => {
     const width = container.clientWidth || 600;
     const height = container.clientHeight || 500;
 
+    // Detect mobile or low-power device to scale particle count
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const count = isMobile ? 8000 : 16000;
+    particleCountRef.current = count;
+
     const scene = new THREE.Scene();
+    sceneRef.current = scene;
     scene.background = new THREE.Color(0x060814);
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.set(0, 0, 15);
+    camera.position.set(0, 0, 16);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    rendererRef.current = renderer;
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     container.appendChild(renderer.domElement);
 
-    // Particle Cloud Geometry
-    const particleCount = 25000;
     const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(particleCount * 3);
-    const colors = new Float32Array(particleCount * 3);
+    geometryRef.current = geometry;
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
 
-    const cInner = new THREE.Color(0xffff00);
-    const cMid = new THREE.Color(0x00f2fe);
-    const cOuter = new THREE.Color(0x0040ff);
-
-    for (let i = 0; i < particleCount; i++) {
-      const u1 = Math.random();
-      const u2 = Math.random();
-      const r = 4.5 * Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos((Math.random() * 2) - 1);
-
-      const x = r * Math.sin(phi) * Math.cos(theta);
-      const y = r * Math.sin(phi) * Math.sin(theta);
-      const z = r * Math.cos(phi);
-
-      positions[i * 3] = x;
-      positions[i * 3 + 1] = y;
-      positions[i * 3 + 2] = z;
-
-      const dist = Math.abs(r) / 5;
-      const col = new THREE.Color();
-      if (dist < 0.3) {
-        col.lerpColors(cInner, cMid, dist / 0.3);
-      } else {
-        col.lerpColors(cMid, cOuter, Math.min((dist - 0.3) / 0.7, 1));
-      }
-
-      colors[i * 3] = col.r;
-      colors[i * 3 + 1] = col.g;
-      colors[i * 3 + 2] = col.b;
-    }
+    generateShellParticles(selectedShell, count, positions, colors);
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     const material = new THREE.PointsMaterial({
-      size: 0.05,
+      size: isMobile ? 0.07 : 0.05,
       vertexColors: true,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.82,
       blending: THREE.AdditiveBlending
     });
+    materialRef.current = material;
 
     const pointCloud = new THREE.Points(geometry, material);
+    pointCloudRef.current = pointCloud;
     scene.add(pointCloud);
 
-    // Mouse Interaction
-    let isDragging = false;
-    let previousMousePosition = { x: 0, y: 0 };
-
+    // Mouse / Touch Drag Handlers
     const handleMouseDown = (e: MouseEvent) => {
-      isDragging = true;
-      previousMousePosition = { x: e.clientX, y: e.clientY };
+      isDraggingRef.current = true;
+      previousMousePositionRef.current = { x: e.clientX, y: e.clientY };
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      const deltaX = e.clientX - previousMousePosition.x;
-      const deltaY = e.clientY - previousMousePosition.y;
+      if (!isDraggingRef.current || !pointCloudRef.current) return;
+      const deltaX = e.clientX - previousMousePositionRef.current.x;
+      const deltaY = e.clientY - previousMousePositionRef.current.y;
 
-      pointCloud.rotation.y += deltaX * 0.008;
-      pointCloud.rotation.x += deltaY * 0.008;
+      pointCloudRef.current.rotation.y += deltaX * 0.007;
+      pointCloudRef.current.rotation.x += deltaY * 0.007;
 
-      previousMousePosition = { x: e.clientX, y: e.clientY };
+      previousMousePositionRef.current = { x: e.clientX, y: e.clientY };
     };
 
     const handleMouseUp = () => {
-      isDragging = false;
+      isDraggingRef.current = false;
     };
 
-    // Touch support
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 1) {
-        isDragging = true;
-        previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        isDraggingRef.current = true;
+        previousMousePositionRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isDragging || e.touches.length !== 1) return;
+      if (!isDraggingRef.current || !pointCloudRef.current || e.touches.length !== 1) return;
       e.preventDefault();
-      const deltaX = e.touches[0].clientX - previousMousePosition.x;
-      const deltaY = e.touches[0].clientY - previousMousePosition.y;
+      const deltaX = e.touches[0].clientX - previousMousePositionRef.current.x;
+      const deltaY = e.touches[0].clientY - previousMousePositionRef.current.y;
 
-      pointCloud.rotation.y += deltaX * 0.008;
-      pointCloud.rotation.x += deltaY * 0.008;
+      pointCloudRef.current.rotation.y += deltaX * 0.007;
+      pointCloudRef.current.rotation.x += deltaY * 0.007;
 
-      previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      previousMousePositionRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     };
 
     const handleTouchEnd = () => {
-      isDragging = false;
+      isDraggingRef.current = false;
     };
 
     const domEl = renderer.domElement;
@@ -140,18 +254,23 @@ export const Orbital3DView: React.FC<Orbital3DViewProps> = ({ element }) => {
     domEl.addEventListener('touchmove', handleTouchMove, { passive: false });
     domEl.addEventListener('touchend', handleTouchEnd);
 
-    let animationFrameId: number;
+    // Animation Loop
+    let clock = new THREE.Clock();
     const animate = () => {
-      animationFrameId = requestAnimationFrame(animate);
-      if (!isDragging) {
-        pointCloud.rotation.y += 0.003;
+      animFrameRef.current = requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+
+      if (!isDraggingRef.current && pointCloudRef.current) {
+        const speed = settings.reduceMotion ? 0.02 : 0.2;
+        pointCloudRef.current.rotation.y += speed * delta;
       }
+
       renderer.render(scene, camera);
     };
 
     animate();
 
-    // ResizeObserver for container resizing
+    // Container Resize Observer
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width: w, height: h } = entry.contentRect;
@@ -166,7 +285,7 @@ export const Orbital3DView: React.FC<Orbital3DViewProps> = ({ element }) => {
     resizeObserver.observe(container);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      cancelAnimationFrame(animFrameRef.current);
       resizeObserver.disconnect();
       domEl.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mousemove', handleMouseMove);
@@ -174,43 +293,61 @@ export const Orbital3DView: React.FC<Orbital3DViewProps> = ({ element }) => {
       domEl.removeEventListener('touchstart', handleTouchStart);
       domEl.removeEventListener('touchmove', handleTouchMove);
       domEl.removeEventListener('touchend', handleTouchEnd);
+
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
+
       geometry.dispose();
       material.dispose();
       renderer.dispose();
     };
-  }, [element, selectedShell]);
-
-  const maxShellPopulations = [2, 8, 18, 32, 32, 18, 8];
+  }, [element, settings.reduceMotion, generateShellParticles]);
 
   return (
-    <div className="orbitals-container">
+    <div className="orbitals-container" style={{ display: 'flex', width: '100%', height: '100%' }}>
       {/* Left Panel: Shells and Shell Population Controls */}
-      <div className="orbitals-left-panel" style={{ background: '#faf8f5', borderRight: '1px solid rgba(0,0,0,0.06)', boxSizing: 'border-box', padding: '24px' }}>
+      <div
+        className="orbitals-left-panel"
+        style={{
+          width: '260px',
+          background: '#faf8f5',
+          borderRight: '1px solid rgba(0,0,0,0.06)',
+          boxSizing: 'border-box',
+          padding: '24px',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
         <div style={{ marginBottom: '20px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#8e8e93', display: 'block', marginBottom: '10px' }}>
-            SHELLS
+          <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#64748b', display: 'block', marginBottom: '10px' }}>
+            PRINCIPAL QUANTUM SHELLS (n)
           </span>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {shellLabels.map((lbl, idx) => {
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }} role="tablist" aria-label="Electron shell selector">
+            {SHELL_LABELS.map((lbl, idx) => {
               const hasElectrons = idx < shellConfigs.length;
+              const isSelected = selectedShell === lbl;
               return (
                 <button
                   key={lbl}
+                  role="tab"
+                  aria-selected={isSelected}
                   disabled={!hasElectrons}
                   onClick={() => setSelectedShell(lbl)}
+                  aria-label={`Shell ${lbl} (${hasElectrons ? `${shellConfigs[idx]} electrons` : 'Unoccupied'})`}
                   style={{
                     width: '32px',
                     height: '32px',
                     borderRadius: '50%',
                     border: 'none',
-                    background: selectedShell === lbl ? '#0a0c1a' : (hasElectrons ? 'rgba(0,0,0,0.05)' : 'rgba(0,0,0,0.02)'),
-                    color: selectedShell === lbl ? '#fff' : (hasElectrons ? '#1a1a1a' : '#ccc'),
+                    background: isSelected ? '#0f172a' : hasElectrons ? 'rgba(0,0,0,0.06)' : 'rgba(0,0,0,0.02)',
+                    color: isSelected ? '#ffffff' : hasElectrons ? '#1e293b' : '#94a3b8',
                     fontWeight: 700,
-                    cursor: hasElectrons ? 'pointer' : 'default',
-                    transition: 'all 0.2s'
+                    fontSize: '12px',
+                    cursor: hasElectrons ? 'pointer' : 'not-allowed',
+                    boxShadow: isSelected ? '0 2px 8px rgba(15,23,42,0.3)' : 'none',
+                    transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
                   }}
                 >
                   {lbl}
@@ -221,40 +358,52 @@ export const Orbital3DView: React.FC<Orbital3DViewProps> = ({ element }) => {
         </div>
 
         {/* Shell Population Bars */}
-        <div style={{ marginBottom: '24px' }}>
+        <div style={{ marginBottom: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#8e8e93' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#64748b' }}>
               SHELL POPULATION
             </span>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#1a1a1a' }}>
-              {element.level2_structure?.electrons || element.id} e⁻
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>
+              {element.level2_structure?.electrons || element.id} e⁻ total
             </span>
           </div>
 
           {shellConfigs.map((count, idx) => {
-            const max = maxShellPopulations[idx] || 8;
-            const pct = (count / max) * 100;
+            const max = MAX_SHELL_POPULATIONS[idx] || 8;
+            const pct = Math.min(100, (count / max) * 100);
+            const isCurrent = selectedShell === SHELL_LABELS[idx];
+
             return (
-              <div key={idx} style={{ marginBottom: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
-                  <span>{shellLabels[idx]}</span>
-                  <span>{count}/{max}</span>
+              <div key={idx} style={{ marginBottom: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: isCurrent ? 700 : 500, marginBottom: '3px', color: isCurrent ? '#0284c7' : '#334155' }}>
+                  <span>Shell {SHELL_LABELS[idx]} (n={idx + 1})</span>
+                  <span>{count} / {max}</span>
                 </div>
                 <div style={{ height: '4px', background: 'rgba(0,0,0,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
-                  <div style={{ width: `${pct}%`, height: '100%', background: '#0a0c1a', borderRadius: '2px' }}></div>
+                  <div
+                    style={{
+                      width: `${pct}%`,
+                      height: '100%',
+                      background: isCurrent ? '#0284c7' : '#0f172a',
+                      borderRadius: '2px',
+                      transition: 'background 0.2s ease'
+                    }}
+                  />
                 </div>
               </div>
             );
           })}
         </div>
 
-        <div style={{ marginTop: 'auto', fontSize: '10px', color: '#8e8e93', letterSpacing: '0.5px' }}>
-          ● CONFIGURATION-AVERAGED DENSITY - SCREENED HYDROGENIC MODEL
+        <div style={{ marginTop: 'auto', fontSize: '10px', color: '#64748b', lineHeight: 1.4 }}>
+          <strong>Screened Hydrogenic Wavefunction</strong>
+          <br />
+          Displaying quantum probability cloud (|ψ|²) for shell <strong>{selectedShell}</strong>. Click shells above to change active orbital visualization.
         </div>
       </div>
 
       {/* Right 3D Viewport */}
-      <div style={{ flex: 1, position: 'relative' }}>
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         <div ref={mountRef} style={{ width: '100%', height: '100%', minHeight: '300px' }} />
       </div>
     </div>

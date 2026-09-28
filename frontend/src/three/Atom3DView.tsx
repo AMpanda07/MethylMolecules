@@ -1,15 +1,42 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { ElementDetailData } from '../types';
+import { WebGLFallback } from '../components/WebGLFallback';
+import { useAppStore } from '../state/useAppStore';
 
 interface Atom3DViewProps {
   element: ElementDetailData;
 }
 
+const isWebGLAvailable = (): boolean => {
+  try {
+    const canvas = document.createElement('canvas');
+    return Boolean(
+      window.WebGLRenderingContext &&
+        (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'))
+    );
+  } catch {
+    return false;
+  }
+};
+
 export const Atom3DView: React.FC<Atom3DViewProps> = ({ element }) => {
   const mountRef = useRef<HTMLDivElement>(null);
+  const [webGLSupported] = useState<boolean>(isWebGLAvailable);
+  const { settings } = useAppStore();
+
+  const protonsCount = element.level2_structure?.protons || element.id;
+  const neutronsCount =
+    element.level2_structure?.neutrons ||
+    Math.max(0, Math.round(Number(element.level2_structure?.avgMass || element.id * 2)) - element.id);
+  const electronsCount = element.level2_structure?.electrons || element.id;
+
+  const totalNucleons = protonsCount + neutronsCount;
+  const isNucleusScaled = totalNucleons > 64;
 
   useEffect(() => {
+    if (!webGLSupported) return;
+
     const container = mountRef.current;
     if (!container) return;
 
@@ -19,20 +46,30 @@ export const Atom3DView: React.FC<Atom3DViewProps> = ({ element }) => {
     // Scene, Camera, Renderer
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.set(0, 0, 14);
+    camera.position.set(0, 0, 15);
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
+    } catch {
+      return;
+    }
+
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     container.appendChild(renderer.domElement);
 
     // Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.4);
     dirLight.position.set(5, 10, 7);
     scene.add(dirLight);
+
+    const backLight = new THREE.DirectionalLight(0x38bdf8, 0.6);
+    backLight.position.set(-5, -5, -5);
+    scene.add(backLight);
 
     // Root Group for rotation
     const atomGroup = new THREE.Group();
@@ -42,30 +79,31 @@ export const Atom3DView: React.FC<Atom3DViewProps> = ({ element }) => {
     const nucleusGroup = new THREE.Group();
     atomGroup.add(nucleusGroup);
 
-    const protonsCount = element.level2_structure?.protons || element.id;
-    const neutronsCount = element.level2_structure?.neutrons || Math.round(element.id * 1.2);
-
     const protonMat = new THREE.MeshStandardMaterial({
-      color: 0xff3b30,
-      roughness: 0.3,
-      metalness: 0.2
+      color: 0xef4444,
+      roughness: 0.35,
+      metalness: 0.15
     });
     const neutronMat = new THREE.MeshStandardMaterial({
-      color: 0x8e8e93,
-      roughness: 0.4,
+      color: 0x94a3b8,
+      roughness: 0.45,
       metalness: 0.1
     });
 
-    const sphereGeo = new THREE.SphereGeometry(0.3, 16, 16);
-    const totalParticles = Math.min(protonsCount + neutronsCount, 60);
+    const sphereGeo = new THREE.SphereGeometry(0.28, 16, 16);
 
-    for (let i = 0; i < totalParticles; i++) {
-      const isProton = i % 2 === 0;
+    // Representative or exact nucleon particle count
+    const visualNucleonCount = Math.min(totalNucleons, 64);
+    const protonRatio = protonsCount / Math.max(1, totalNucleons);
+
+    for (let i = 0; i < visualNucleonCount; i++) {
+      // Preserve accurate proton-to-neutron ratio
+      const isProton = (i / visualNucleonCount) < protonRatio;
       const mesh = new THREE.Mesh(sphereGeo, isProton ? protonMat : neutronMat);
-      
-      const phi = Math.acos(-1 + (2 * i) / totalParticles);
-      const theta = Math.sqrt(totalParticles * Math.PI) * phi;
-      const r = 0.5 * Math.cbrt(totalParticles * 0.1) * (0.8 + Math.random() * 0.4);
+
+      const phi = Math.acos(-1 + (2 * i) / Math.max(1, visualNucleonCount));
+      const theta = Math.sqrt(visualNucleonCount * Math.PI) * phi;
+      const r = 0.42 * Math.cbrt(visualNucleonCount * 0.15) * (0.8 + (i % 3) * 0.15);
 
       mesh.position.set(
         r * Math.sin(phi) * Math.cos(theta),
@@ -81,19 +119,30 @@ export const Atom3DView: React.FC<Atom3DViewProps> = ({ element }) => {
     atomGroup.add(electronGroup);
 
     const electronMat = new THREE.MeshStandardMaterial({
-      color: 0x007aff,
-      emissive: 0x0040aa,
+      color: 0x0284c7,
+      emissive: 0x0369a1,
       roughness: 0.2
     });
     const electronGeo = new THREE.SphereGeometry(0.18, 16, 16);
 
-    const shellMeshes: { mesh: THREE.Mesh; radius: number; speed: number; angle: number; tiltX: number; tiltZ: number }[] = [];
+    const shellMeshes: {
+      mesh: THREE.Mesh;
+      radius: number;
+      speed: number;
+      angle: number;
+      tiltX: number;
+      tiltZ: number;
+    }[] = [];
+
+    const ringGeometries: THREE.BufferGeometry[] = [];
+    const ringMaterials: THREE.LineBasicMaterial[] = [];
 
     shellConfig.forEach((count, sIdx) => {
-      const radius = 2.2 + sIdx * 1.5;
+      const radius = 2.4 + sIdx * 1.4;
 
       // Shell Ring Line
       const ringGeo = new THREE.BufferGeometry();
+      ringGeometries.push(ringGeo);
       const points: THREE.Vector3[] = [];
       const segments = 64;
       for (let j = 0; j <= segments; j++) {
@@ -103,14 +152,16 @@ export const Atom3DView: React.FC<Atom3DViewProps> = ({ element }) => {
       ringGeo.setFromPoints(points);
 
       const ringLineMat = new THREE.LineBasicMaterial({
-        color: 0xcccccc,
+        color: 0x94a3b8,
         transparent: true,
-        opacity: 0.5
+        opacity: 0.4
       });
+      ringMaterials.push(ringLineMat);
+
       const ringMesh = new THREE.Line(ringGeo, ringLineMat);
 
-      const tiltX = (sIdx * 0.4) - 0.2;
-      const tiltZ = (sIdx * 0.3);
+      const tiltX = sIdx * 0.35 - 0.2;
+      const tiltZ = sIdx * 0.25;
       ringMesh.rotation.x = tiltX;
       ringMesh.rotation.z = tiltZ;
       electronGroup.add(ringMesh);
@@ -123,7 +174,7 @@ export const Atom3DView: React.FC<Atom3DViewProps> = ({ element }) => {
         shellMeshes.push({
           mesh: eMesh,
           radius,
-          speed: 1.5 + (sIdx * 0.3),
+          speed: 1.4 + sIdx * 0.25,
           angle: baseAngle,
           tiltX,
           tiltZ
@@ -131,7 +182,7 @@ export const Atom3DView: React.FC<Atom3DViewProps> = ({ element }) => {
       }
     });
 
-    // Mouse Interaction
+    // Mouse & Touch Drag Interaction
     let isDragging = false;
     let previousMousePosition = { x: 0, y: 0 };
 
@@ -155,7 +206,6 @@ export const Atom3DView: React.FC<Atom3DViewProps> = ({ element }) => {
       isDragging = false;
     };
 
-    // Touch support
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 1) {
         isDragging = true;
@@ -196,14 +246,16 @@ export const Atom3DView: React.FC<Atom3DViewProps> = ({ element }) => {
       const delta = clock.getDelta();
 
       if (!isDragging) {
-        atomGroup.rotation.y += 0.2 * delta;
+        const speed = settings.reduceMotion ? 0.03 : 0.22;
+        atomGroup.rotation.y += speed * delta;
       }
 
-      shellMeshes.forEach(item => {
-        item.angle += item.speed * delta;
+      shellMeshes.forEach((item) => {
+        const speedMultiplier = settings.reduceMotion ? 0.2 : 1;
+        item.angle += item.speed * speedMultiplier * delta;
         const x = Math.cos(item.angle) * item.radius;
         const y = Math.sin(item.angle) * item.radius;
-        
+
         const pos = new THREE.Vector3(x, y, 0);
         pos.applyAxisAngle(new THREE.Vector3(1, 0, 0), item.tiltX);
         pos.applyAxisAngle(new THREE.Vector3(0, 0, 1), item.tiltZ);
@@ -216,7 +268,7 @@ export const Atom3DView: React.FC<Atom3DViewProps> = ({ element }) => {
 
     animate();
 
-    // ResizeObserver for Container Resizing
+    // ResizeObserver
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width: w, height: h } = entry.contentRect;
@@ -239,17 +291,64 @@ export const Atom3DView: React.FC<Atom3DViewProps> = ({ element }) => {
       domEl.removeEventListener('touchstart', handleTouchStart);
       domEl.removeEventListener('touchmove', handleTouchMove);
       domEl.removeEventListener('touchend', handleTouchEnd);
+
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
+
       sphereGeo.dispose();
       protonMat.dispose();
       neutronMat.dispose();
       electronMat.dispose();
       electronGeo.dispose();
+      ringGeometries.forEach((g) => g.dispose());
+      ringMaterials.forEach((m) => m.dispose());
       renderer.dispose();
     };
-  }, [element]);
+  }, [element, webGLSupported, settings.reduceMotion, protonsCount, neutronsCount, totalNucleons]);
 
-  return <div ref={mountRef} className="atom-3d-viewport" style={{ width: '100%', height: '100%', minHeight: '300px' }} />;
+  if (!webGLSupported) {
+    return <WebGLFallback />;
+  }
+
+  return (
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      {/* Informative model subtitle documenting representative scale */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          zIndex: 20,
+          background: 'rgba(255, 255, 255, 0.75)',
+          backdropFilter: 'blur(8px)',
+          borderRadius: '12px',
+          padding: '6px 12px',
+          fontSize: '11px',
+          color: '#334155',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          pointerEvents: 'none',
+          lineHeight: 1.35
+        }}
+      >
+        <div style={{ fontWeight: 700, color: '#0f172a' }}>Bohr-Rutherford Model</div>
+        <div>
+          <span style={{ color: '#ef4444', fontWeight: 600 }}>● {protonsCount}p⁺</span>{' '}
+          <span style={{ color: '#64748b', fontWeight: 600 }}>● {neutronsCount}n⁰</span>{' '}
+          <span style={{ color: '#0284c7', fontWeight: 600 }}>● {electronsCount}e⁻</span>
+        </div>
+        {isNucleusScaled && (
+          <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
+            Representative nucleus scale (64 clustered nucleons)
+          </div>
+        )}
+      </div>
+
+      <div
+        ref={mountRef}
+        className="atom-3d-viewport"
+        style={{ width: '100%', height: '100%', minHeight: '300px' }}
+      />
+    </div>
+  );
 };

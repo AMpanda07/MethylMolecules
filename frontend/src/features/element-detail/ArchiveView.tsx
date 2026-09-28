@@ -6,7 +6,8 @@ import {
   getArchiveItem,
   getFullElementArchive
 } from '../../data/archiveData';
-import { ExternalLink, Check, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { getWikimediaDirectUrl } from '../../services/archiveImageService';
+import { ExternalLink, Check, AlertCircle, RotateCcw } from 'lucide-react';
 
 interface ArchiveViewProps {
   element: ElementDetailData;
@@ -20,70 +21,108 @@ const SECTIONS: { id: ArchiveSection; label: string }[] = [
 ];
 
 export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
-  // Single authoritative selected category
+  // Single authoritative selected section
   const [selectedSection, setSelectedSection] = useState<ArchiveSection>('portrait');
   const [isImgLoaded, setIsImgLoaded] = useState<boolean>(false);
   const [hasImgError, setHasImgError] = useState<boolean>(false);
+  const [activeImgUrl, setActiveImgUrl] = useState<string>('');
   const [isSuggestModalOpen, setIsSuggestModalOpen] = useState<boolean>(false);
   const [suggestFormSubmitted, setSuggestFormSubmitted] = useState<boolean>(false);
   const [suggestSourceUrl, setSuggestSourceUrl] = useState<string>('');
   const [suggestNotes, setSuggestNotes] = useState<string>('');
+  const [retryCount, setRetryCount] = useState<number>(0);
 
-  // Race condition protection ref for image preloading
+  // Stale request guard ref
   const activeRequestIdRef = useRef<string>('');
 
-  // Synchronously derive current archive item from authoritative state
+  // Authoritative item and full archive
   const currentArchiveItem: ArchiveItemData = getArchiveItem(element, selectedSection);
   const fullArchive = getFullElementArchive(element);
 
-  // Stable key combining element symbol and section
-  const currentKey = `${element.symbol}-${selectedSection}`;
+  // Stable key combining element and category
+  const currentKey = `${element.symbol}-${selectedSection}-${retryCount}`;
 
-  // Reset loading and error states whenever element or section changes
+  // Image load & lifecycle effect with current-priority, timeout, and lazy background preloading
   useEffect(() => {
     setIsImgLoaded(false);
     setHasImgError(false);
 
+    const targetUrl = retryCount > 0 && currentArchiveItem.metadata.sourceUrl
+      ? getWikimediaDirectUrl(currentArchiveItem.metadata.sourceUrl) || currentArchiveItem.image
+      : currentArchiveItem.image;
+
+    setActiveImgUrl(targetUrl);
+
     const requestId = `${currentKey}-${Date.now()}`;
     activeRequestIdRef.current = requestId;
 
-    // Preload current image
+    // Fast-path: data URIs (SVG or otherwise) load synchronously — no async needed
+    if (targetUrl.startsWith('data:')) {
+      setIsImgLoaded(true);
+      return;
+    }
+
+    // Fast-path: empty URL means fallback SVG was selected — show error state cleanly
+    if (!targetUrl) {
+      setHasImgError(true);
+      return;
+    }
+
     const img = new Image();
-    img.src = currentArchiveItem.image;
+    img.src = targetUrl;
+
+    // 5-second timeout safeguard to prevent infinite skeleton loading
+    const timeoutId = setTimeout(() => {
+      if (activeRequestIdRef.current === requestId && !img.complete) {
+        img.src = '';
+        setHasImgError(true);
+      }
+    }, 5000);
 
     img.onload = () => {
-      // Ignore stale async completions
+      clearTimeout(timeoutId);
       if (activeRequestIdRef.current === requestId) {
         setIsImgLoaded(true);
+        setHasImgError(false);
+
+        // Optional background preload ONLY AFTER current image succeeds
+        requestIdleCallback?.(() => {
+          SECTIONS.forEach(({ id }) => {
+            if (id !== selectedSection) {
+              const other = fullArchive[id];
+              if (other?.image && !other.image.startsWith('data:')) {
+                const idleImg = new Image();
+                idleImg.src = other.image;
+              }
+            }
+          });
+        });
       }
     };
 
     img.onerror = () => {
+      clearTimeout(timeoutId);
       if (activeRequestIdRef.current === requestId) {
         setHasImgError(true);
       }
     };
 
-    // Also preload remaining sections in background for instant transitions
-    SECTIONS.forEach(({ id }) => {
-      if (id !== selectedSection) {
-        const otherItem = fullArchive[id];
-        if (otherItem?.image) {
-          const preImg = new Image();
-          preImg.src = otherItem.image;
-        }
-      }
-    });
-
     return () => {
-      activeRequestIdRef.current = '';
+      clearTimeout(timeoutId);
+      img.onload = null;
+      img.onerror = null;
     };
-  }, [element.symbol, selectedSection, currentKey, currentArchiveItem.image]);
+  }, [element.symbol, selectedSection, currentKey, retryCount, currentArchiveItem.image]);
 
   const handleSectionSelect = (section: ArchiveSection) => {
     if (selectedSection !== section) {
       setSelectedSection(section);
+      setRetryCount(0);
     }
+  };
+
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
   };
 
   const handleSuggestSubmit = (e: React.FormEvent) => {
@@ -97,58 +136,21 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
     }, 1500);
   };
 
-  // Determine satellite orbs for the constellation view
+  // Satellite orbs for non-selected sections
   const satelliteSections = SECTIONS.filter(s => s.id !== selectedSection);
 
-  // Orbital positions around the center
-  const orbitPositions = [
-    { top: '24%', left: '38%', size: 105 },
-    { top: '48%', left: '76%', size: 115 },
-    { top: '72%', left: '42%', size: 110 }
+  // Circular constellation orbital angles around center
+  const orbitCoordinates = [
+    { top: '23%', left: '36%', size: 98 },
+    { top: '48%', left: '77%', size: 108 },
+    { top: '73%', left: '40%', size: 102 }
   ];
 
   return (
-    <div
-      className="archive-viewport"
-      key={element.symbol} // Root element boundary ensures clean state
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        overflow: 'hidden',
-        background: '#faf8f5',
-        display: 'flex',
-        flexDirection: 'column'
-      }}
-    >
-      {/* ─── 1. TOP ARCHIVE NAVIGATION BUTTONS (Coherent Group) ─── */}
-      <div
-        className="archive-nav-container"
-        style={{
-          padding: '16px 20px 8px',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 30,
-          position: 'relative'
-        }}
-      >
-        <div
-          className="archive-nav-group"
-          role="tablist"
-          aria-label="Archive category navigation"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            background: 'rgba(0, 0, 0, 0.06)',
-            borderRadius: '999px',
-            padding: '4px',
-            gap: '4px',
-            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.06)',
-            maxWidth: '100%',
-            overflowX: 'auto'
-          }}
-        >
+    <div className="archive-viewport" key={element.symbol}>
+      {/* ─── 1. TOP ARCHIVE NAVIGATION BUTTONS ─── */}
+      <div className="archive-nav-container">
+        <div className="archive-nav-group" role="tablist" aria-label="Archive category navigation">
           {SECTIONS.map(({ id, label }) => {
             const isActive = selectedSection === id;
             return (
@@ -157,32 +159,9 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
                 role="tab"
                 id={`archive-tab-${id}`}
                 aria-selected={isActive}
-                aria-pressed={isActive}
                 aria-controls={`archive-panel-${id}`}
                 onClick={() => handleSectionSelect(id)}
                 className={`archive-nav-btn ${isActive ? 'active' : ''}`}
-                style={{
-                  height: '34px',
-                  minWidth: '84px',
-                  padding: '0 16px',
-                  borderRadius: '999px',
-                  border: 'none',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  letterSpacing: '0.4px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: isActive ? '#0f172a' : 'transparent',
-                  color: isActive ? '#ffffff' : '#475569',
-                  boxShadow: isActive ? '0 2px 8px rgba(15, 23, 42, 0.25)' : 'none',
-                  transform: isActive ? 'scale(1)' : 'scale(0.98)',
-                  transition: 'background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, transform 0.15s ease',
-                  outline: 'none',
-                  whiteSpace: 'nowrap',
-                  userSelect: 'none'
-                }}
               >
                 {label}
               </button>
@@ -192,46 +171,11 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
       </div>
 
       {/* ─── 2. MAIN VISUAL STAGE & CONSTELLATION ─── */}
-      <div
-        className="archive-stage"
-        style={{
-          position: 'relative',
-          flex: 1,
-          width: '100%',
-          overflow: 'hidden'
-        }}
-      >
-        {/* Main Central Orb for selected section */}
-        <div
-          className="archive-orb-main-wrap"
-          style={{
-            position: 'absolute',
-            top: '46%',
-            left: '52%',
-            transform: 'translate(-50%, -50%)',
-            width: '230px',
-            height: '230px',
-            borderRadius: '50%',
-            zIndex: 10,
-            transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
-          }}
-        >
-          <div
-            className="archive-orb-card"
-            style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: '50%',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 20px 48px rgba(0,0,0,0.22), 0 0 0 4px #ffffff, 0 0 0 6px #0f172a',
-              background: '#e2e8f0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            {/* Loading Shimmer Skeleton */}
+      <div className="archive-stage">
+        {/* Main Focus Orb */}
+        <div className="archive-orb-main-wrap">
+          <div className="archive-orb-card">
+            {/* Shimmer loading skeleton */}
             {!isImgLoaded && !hasImgError && (
               <div
                 className="archive-img-skeleton"
@@ -245,7 +189,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
               />
             )}
 
-            {/* Error Fallback Graphics */}
+            {/* Error Fallback & Retry */}
             {hasImgError ? (
               <div
                 style={{
@@ -256,8 +200,9 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   padding: '16px',
-                  background: '#f8fafc',
-                  textAlign: 'center'
+                  background: '#090d16',
+                  textAlign: 'center',
+                  position: 'relative'
                 }}
               >
                 {currentArchiveItem.fallbackSvg ? (
@@ -269,18 +214,37 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
                 ) : (
                   <>
                     <AlertCircle size={32} color="#94a3b8" style={{ marginBottom: '8px' }} />
-                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>
-                      Archive image unavailable
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', marginBottom: '8px' }}>
+                      Image temporarily unavailable
                     </span>
+                    <button
+                      onClick={handleRetry}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        background: 'rgba(255,255,255,0.1)',
+                        color: '#ffffff',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <RotateCcw size={12} />
+                      Retry
+                    </button>
                   </>
                 )}
               </div>
             ) : (
               <img
-                key={currentKey}
-                src={currentArchiveItem.image}
-                alt={`${element.name} ${selectedSection}`}
-                className="archive-main-img"
+                key={activeImgUrl}
+                src={activeImgUrl}
+                alt={`${element.name} (${element.symbol}) - ${currentArchiveItem.title}`}
+                loading="eager"
+                decoding="async"
                 onLoad={() => setIsImgLoaded(true)}
                 onError={() => setHasImgError(true)}
                 style={{
@@ -295,7 +259,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
               />
             )}
 
-            {/* Bottom Section Label in Orb */}
+            {/* Bottom Section Tag in Orb */}
             <div
               style={{
                 position: 'absolute',
@@ -306,7 +270,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
                 textAlign: 'center',
                 background: 'linear-gradient(to top, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.4) 60%, transparent 100%)',
                 color: '#ffffff',
-                fontSize: '12px',
+                fontSize: '11px',
                 fontWeight: 700,
                 letterSpacing: '0.8px',
                 textTransform: 'uppercase',
@@ -318,10 +282,10 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
           </div>
         </div>
 
-        {/* Satellite Orbiting Orbs for non-selected sections */}
+        {/* Satellite Orbiting Orbs */}
         {satelliteSections.map((sec, index) => {
           const item = fullArchive[sec.id];
-          const pos = orbitPositions[index] || { top: '50%', left: '50%', size: 100 };
+          const pos = orbitCoordinates[index] || { top: '50%', left: '50%', size: 96 };
 
           return (
             <button
@@ -329,45 +293,25 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
               onClick={() => handleSectionSelect(sec.id)}
               aria-label={`Switch to ${sec.label}`}
               title={`View ${element.name} ${sec.label}`}
+              className="archive-satellite-orb"
               style={{
-                position: 'absolute',
                 top: pos.top,
                 left: pos.left,
                 transform: 'translate(-50%, -50%)',
                 width: `${pos.size}px`,
-                height: `${pos.size}px`,
-                borderRadius: '50%',
-                border: 'none',
-                padding: 0,
-                background: '#ffffff',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.12), 0 0 0 2px rgba(255,255,255,0.8)',
-                cursor: 'pointer',
-                overflow: 'hidden',
-                zIndex: 6,
-                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1.08)';
-                e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,0.2), 0 0 0 3px #0f172a';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12), 0 0 0 2px rgba(255,255,255,0.8)';
+                height: `${pos.size}px`
               }}
             >
               <img
                 src={item?.image || item?.fallbackSvg}
                 alt={sec.label}
+                loading="lazy"
                 onError={(e) => {
                   if (item?.fallbackSvg) {
                     (e.currentTarget as HTMLImageElement).src = item.fallbackSvg;
                   }
                 }}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover'
-                }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
               <div
                 style={{
@@ -377,7 +321,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
                   right: 0,
                   padding: '4px 0',
                   textAlign: 'center',
-                  background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
+                  background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
                   color: '#ffffff',
                   fontSize: '10px',
                   fontWeight: 700,
@@ -392,15 +336,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
       </div>
 
       {/* ─── 3. BOTTOM INFO & ATTRIBUTION PANEL ─── */}
-      <div
-        className="archive-info-card"
-        style={{
-          padding: '12px 24px 72px', // Bottom padding leaves space for atom-bottom-controls
-          background: 'linear-gradient(to top, rgba(250,248,245,1) 70%, rgba(250,248,245,0.85) 100%)',
-          zIndex: 20,
-          position: 'relative'
-        }}
-      >
+      <div className="archive-info-card" id={`archive-panel-${selectedSection}`} role="tabpanel">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
           <span
             style={{
@@ -409,25 +345,24 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
               letterSpacing: '1.2px',
               textTransform: 'uppercase',
               color: '#0284c7',
-              background: '#e0f2fe',
+              background: 'rgba(2, 132, 199, 0.12)',
               padding: '2px 8px',
               borderRadius: '4px'
             }}
           >
             {selectedSection}
           </span>
-          <span style={{ fontSize: '11px', color: '#64748b' }}>
-            {currentArchiveItem.metadata.category || 'Specimen'} · {currentArchiveItem.metadata.year || ''}
+          <span style={{ fontSize: '11px', opacity: 0.75 }}>
+            {currentArchiveItem.metadata.category || 'Element Specimen'} · {currentArchiveItem.metadata.year || ''}
           </span>
         </div>
 
         <h3
           style={{
-            margin: '0 0 6px 0',
+            margin: '0 0 4px 0',
             fontSize: '15px',
             fontWeight: 700,
-            color: '#0f172a',
-            lineHeight: 1.2
+            lineHeight: 1.25
           }}
         >
           {currentArchiveItem.title}
@@ -438,7 +373,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
             margin: '0 0 8px 0',
             fontSize: '12px',
             lineHeight: 1.45,
-            color: '#334155',
+            opacity: 0.85,
             maxHeight: '44px',
             overflowY: 'auto'
           }}
@@ -446,7 +381,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
           {currentArchiveItem.description}
         </p>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#64748b' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', opacity: 0.75 }}>
           <span>
             Source: <strong>{currentArchiveItem.metadata.source}</strong> ({currentArchiveItem.metadata.license || 'Public Domain'})
           </span>
@@ -456,16 +391,17 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
               href={currentArchiveItem.metadata.sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="View verified original archive source on Wikimedia Commons"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
-                color: '#2563eb',
+                color: '#0284c7',
                 textDecoration: 'none',
                 fontWeight: 600
               }}
             >
-              <span>Ref</span>
+              <span>Verify Source</span>
               <ExternalLink size={10} />
             </a>
           )}
@@ -479,9 +415,9 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
           aria-label="Suggest a source for this archive entry"
           onClick={() => setIsSuggestModalOpen(true)}
           style={{
-            padding: '8px 14px',
+            padding: '7px 14px',
             borderRadius: '20px',
-            border: '1px solid rgba(0,0,0,0.12)',
+            border: '1px solid rgba(120, 120, 120, 0.2)',
             background: 'rgba(255,255,255,0.92)',
             backdropFilter: 'blur(10px)',
             fontSize: '12px',
@@ -509,7 +445,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'rgba(15, 23, 42, 0.45)',
+            background: 'rgba(15, 23, 42, 0.55)',
             backdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'center',
@@ -526,8 +462,9 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
               background: '#ffffff',
               borderRadius: '16px',
               padding: '24px',
-              boxShadow: '0 20px 48px rgba(0,0,0,0.25)',
-              position: 'relative'
+              boxShadow: '0 20px 48px rgba(0,0,0,0.3)',
+              position: 'relative',
+              color: '#0f172a'
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -543,7 +480,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({ element }) => {
               Suggest Archive Source
             </h4>
             <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: '#64748b', lineHeight: 1.4 }}>
-              Help improve the visual archive for <strong>{element.name} ({element.symbol})</strong> · {selectedSection}.
+              Help expand the scientific archive for <strong>{element.name} ({element.symbol})</strong> · {selectedSection}.
             </p>
 
             {suggestFormSubmitted ? (

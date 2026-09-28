@@ -57,7 +57,7 @@ App runs at `http://localhost:3001`
 | Build Tool | Vite 5 |
 | 3D Engine | Three.js |
 | Styling | Vanilla CSS + Glassmorphism |
-| State | Zustand + LocalStorage |
+| State | React Context + useState + LocalStorage |
 | Icons | Lucide React |
 
 ---

@@ -65,6 +65,22 @@ html, body {
     overflow-y: visible !important;
     padding: 12px 16px !important;
     height: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+  }
+
+  #main-container::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  #main-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 6px;
+  }
+
+  html.dark-theme #main-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
   }
 
   #periodic-table {
@@ -700,3 +716,182 @@ select:focus-visible {
 .element:hover {
   will-change: transform, box-shadow;
 }
+
+/* ─── 24. ARCHIVE CONSTELLATION & RESPONSIVE VIEWPORT ────── */
+
+.archive-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #faf8f5;
+  display: flex;
+  flex-direction: column;
+}
+
+html.dark-theme .archive-viewport {
+  background: #0f172a !important;
+}
+
+.archive-nav-container {
+  padding: 16px 20px 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 30;
+  position: relative;
+}
+
+.archive-nav-group {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 4px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+html.dark-theme .archive-nav-group {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.archive-nav-btn {
+  height: 34px;
+  min-width: 84px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #475569;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  white-space: nowrap;
+  user-select: none;
+}
+
+html.dark-theme .archive-nav-btn {
+  color: #94a3b8;
+}
+
+.archive-nav-btn.active {
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
+  transform: scale(1);
+}
+
+html.dark-theme .archive-nav-btn.active {
+  background: #38bdf8;
+  color: #0f172a;
+  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.35);
+}
+
+.archive-stage {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.archive-orb-main-wrap {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  z-index: 10;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.archive-orb-card {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.22), 0 0 0 4px #ffffff, 0 0 0 6px #0f172a;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+html.dark-theme .archive-orb-card {
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5), 0 0 0 4px #1e293b, 0 0 0 6px #38bdf8;
+  background: #1e293b;
+}
+
+.archive-satellite-orb {
+  position: absolute;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 0 0 2px rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  overflow: hidden;
+  z-index: 6;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+.archive-satellite-orb:hover,
+.archive-satellite-orb:focus-visible {
+  transform: translate(-50%, -50%) scale(1.08) !important;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22), 0 0 0 3px #0f172a !important;
+  z-index: 12;
+}
+
+html.dark-theme .archive-satellite-orb {
+  background: #1e293b;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(56, 189, 248, 0.4);
+}
+
+html.dark-theme .archive-satellite-orb:hover {
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.6), 0 0 0 3px #38bdf8 !important;
+}
+
+.archive-info-card {
+  padding: 12px 24px 76px;
+  background: linear-gradient(to top, rgba(250, 248, 245, 1) 70%, rgba(250, 248, 245, 0.85) 100%);
+  z-index: 20;
+  position: relative;
+  transition: background 0.3s ease;
+}
+
+html.dark-theme .archive-info-card {
+  background: linear-gradient(to top, rgba(15, 23, 42, 1) 70%, rgba(15, 23, 42, 0.85) 100%) !important;
+  color: #f1f5f9;
+}
+
+@keyframes archive-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@media (max-width: 600px) {
+  .archive-orb-main-wrap {
+    width: 180px !important;
+    height: 180px !important;
+    top: 42% !important;
+  }
+
+  .archive-info-card {
+    padding: 10px 16px 70px !important;
+  }
+}
+

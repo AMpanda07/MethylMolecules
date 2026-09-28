@@ -37,6 +37,8 @@ const AppContent: React.FC = () => {
         if (found) {
           setSelectedElementId(found.number);
         }
+      } else {
+        setSelectedElementId(null);
       }
     };
 
@@ -50,30 +52,30 @@ const AppContent: React.FC = () => {
       <Header />
 
       <main className="app-content-stage">
-        <ErrorBoundary fallback={<div>Something went wrong in the Periodic Table.</div>}>
+        <ErrorBoundary featureName="Periodic Table">
           {currentRoute === 'table' && <PeriodicTable />}
         </ErrorBoundary>
-        <ErrorBoundary fallback={<div>Something went wrong in Ions.</div>}>
+        <ErrorBoundary featureName="Ions Explorer">
           {currentRoute === 'ions' && <IonsView />}
         </ErrorBoundary>
-        <ErrorBoundary fallback={<div>Something went wrong in Tools.</div>}>
+        <ErrorBoundary featureName="Chemistry Tools">
           {currentRoute === 'tools' && <ChemistryTools />}
         </ErrorBoundary>
-        <ErrorBoundary fallback={<div>Something went wrong in Playground.</div>}>
+        <ErrorBoundary featureName="Worksheet Studio">
           {currentRoute === 'playground' && <WorksheetStudio />}
         </ErrorBoundary>
-        <ErrorBoundary fallback={<div>Something went wrong in Settings.</div>}>
+        <ErrorBoundary featureName="Settings">
           {currentRoute === 'settings' && <SettingsView />}
         </ErrorBoundary>
       </main>
 
-      <ErrorBoundary fallback={<div>Element Detail failed.</div>}>
+      <ErrorBoundary featureName="Element Detail Modal">
         <ElementDetailModal />
       </ErrorBoundary>
-      <ErrorBoundary fallback={<div>Customizer failed.</div>}>
+      <ErrorBoundary featureName="Card Customizer">
         <CardCustomizer />
       </ErrorBoundary>
-      <ErrorBoundary fallback={<div>Search failed.</div>}>
+      <ErrorBoundary featureName="Element Search">
         <SearchModal />
       </ErrorBoundary>
     </div>

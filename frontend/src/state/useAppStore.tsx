@@ -1,7 +1,25 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppSettings, CardCustomizerSettings } from '../types';
 
-const defaultCustomLayout: CardCustomizerSettings = {
+export const safeLocalStorageGet = (key: string): string | null => {
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+export const safeLocalStorageSet = (key: string, val: string): void => {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(key, val);
+  } catch {
+    // Quota or sandbox restrictions ignored safely
+  }
+};
+
+export const defaultCustomLayout: CardCustomizerSettings = {
   showAtomicNumber: true,
   showSymbol: true,
   symbolFontSize: 22,
@@ -23,15 +41,53 @@ const defaultCustomLayout: CardCustomizerSettings = {
   grayscale: false
 };
 
-const defaultSettings: AppSettings = {
-  tempUnit: 'C',
-  densityUnit: 'g/cm3',
-  energyUnit: 'kJ/mol',
-  massPrecision: 3,
-  playbackSpeed: 1,
-  theme: (localStorage.getItem('zperiod_dark_mode') === 'true' ? 'dark' : 'light'),
-  lang: localStorage.getItem('zperiod_lang') || 'en',
-  reduceMotion: localStorage.getItem('zperiod_reduce_motion') === 'true'
+const getInitialCustomLayout = (): CardCustomizerSettings => {
+  const stored = safeLocalStorageGet('zperiod_custom_layout');
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      return { ...defaultCustomLayout, ...parsed };
+    } catch {
+      // Ignore corrupted JSON
+    }
+  }
+  return defaultCustomLayout;
+};
+
+const getInitialSettings = (): AppSettings => {
+  const isDark =
+    safeLocalStorageGet('zperiod_dark_mode') === 'true' ||
+    (safeLocalStorageGet('zperiod_dark_mode') === null &&
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+
+  const lang = safeLocalStorageGet('zperiod_lang') || 'en';
+  const reduceMotion =
+    safeLocalStorageGet('zperiod_reduce_motion') === 'true' ||
+    (typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+
+  const base: AppSettings = {
+    tempUnit: 'C',
+    densityUnit: 'g/cm3',
+    energyUnit: 'kJ/mol',
+    massPrecision: 3,
+    playbackSpeed: 1,
+    theme: isDark ? 'dark' : 'light',
+    lang,
+    reduceMotion
+  };
+
+  const stored = safeLocalStorageGet('zperiod_settings');
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      return { ...base, ...parsed };
+    } catch {
+      // Ignore corrupted settings
+    }
+  }
+  return base;
 };
 
 interface AppContextType {
@@ -69,48 +125,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isCustomLayoutOpen, setIsCustomLayoutOpen] = useState<boolean>(false);
-  
-  const [customLayout, setCustomLayout] = useState<CardCustomizerSettings>(() => {
-    try {
-      const saved = localStorage.getItem('zperiod_custom_layout');
-      return saved ? JSON.parse(saved) : defaultCustomLayout;
-    } catch {
-      return defaultCustomLayout;
-    }
-  });
-
-  const [settings, setSettings] = useState<AppSettings>(() => {
-    try {
-      const saved = localStorage.getItem('zperiod_settings');
-      return saved ? JSON.parse(saved) : defaultSettings;
-    } catch {
-      return defaultSettings;
-    }
-  });
-
+  const [customLayout, setCustomLayout] = useState<CardCustomizerSettings>(getInitialCustomLayout);
+  const [settings, setSettings] = useState<AppSettings>(getInitialSettings);
   const [selectedIonId, setSelectedIonId] = useState<string | null>(null);
   const [selectedTool, setSelectedTool] = useState<string>('balancer');
 
-  // Persist dark mode class on root html
+  // Synchronize HTML dark mode theme class
   useEffect(() => {
     if (settings.theme === 'dark') {
       document.documentElement.classList.add('dark-theme');
-      localStorage.setItem('zperiod_dark_mode', 'true');
+      safeLocalStorageSet('zperiod_dark_mode', 'true');
     } else {
       document.documentElement.classList.remove('dark-theme');
-      localStorage.setItem('zperiod_dark_mode', 'false');
+      safeLocalStorageSet('zperiod_dark_mode', 'false');
     }
   }, [settings.theme]);
 
-  // Persist settings
+  // Persist settings safely
   useEffect(() => {
-    localStorage.setItem('zperiod_settings', JSON.stringify(settings));
-    localStorage.setItem('zperiod_lang', settings.lang);
+    safeLocalStorageSet('zperiod_settings', JSON.stringify(settings));
+    safeLocalStorageSet('zperiod_lang', settings.lang);
+    safeLocalStorageSet('zperiod_reduce_motion', settings.reduceMotion ? 'true' : 'false');
   }, [settings]);
 
-  // Persist custom layout
+  // Persist custom layout safely
   useEffect(() => {
-    localStorage.setItem('zperiod_custom_layout', JSON.stringify(customLayout));
+    safeLocalStorageSet('zperiod_custom_layout', JSON.stringify(customLayout));
   }, [customLayout]);
 
   return (
