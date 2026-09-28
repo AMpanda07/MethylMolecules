@@ -1,9 +1,18 @@
 import React from 'react';
 import { useAppStore } from '../../state/useAppStore';
-import { SlidersHorizontal, Moon, Sun } from 'lucide-react';
+import { SlidersHorizontal, Moon, Sun, Globe, Zap } from 'lucide-react';
 
 export const SettingsView: React.FC = () => {
   const { settings, setSettings, setIsCustomLayoutOpen } = useAppStore();
+
+  const languages = [
+    { code: 'en', name: 'English (US)' },
+    { code: 'es', name: 'Español' },
+    { code: 'fr', name: 'Français' },
+    { code: 'de', name: 'Deutsch' },
+    { code: 'zh', name: '中文 (Chinese)' },
+    { code: 'ja', name: '日本語 (Japanese)' }
+  ];
 
   return (
     <div style={{ padding: '32px 48px', maxWidth: '1000px', margin: '0 auto' }}>
@@ -13,10 +22,12 @@ export const SettingsView: React.FC = () => {
         <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>Unit & Display Preferences</h2>
 
         {/* Temperature Unit */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <div style={{ fontSize: '15px', fontWeight: 700 }}>Temperature Units</div>
-            <div style={{ fontSize: '13px', color: '#666' }}>Units used for melting and boiling point values</div>
+            <div style={{ fontSize: '13px', color: '#666' }}>
+              Units used for melting and boiling point values (Preview: 25.0°C = {settings.tempUnit === 'C' ? '25.0°C' : settings.tempUnit === 'K' ? '298.15 K' : '77.0°F'})
+            </div>
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
             {['C', 'K', 'F'].map(u => (
@@ -39,8 +50,76 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
 
+        {/* Language Selection */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Globe size={16} /> Language & Localization
+            </div>
+            <div style={{ fontSize: '13px', color: '#666' }}>Interface language preference</div>
+          </div>
+          <select
+            value={settings.lang}
+            onChange={(e) => setSettings({ ...settings, lang: e.target.value })}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '10px',
+              border: '1px solid rgba(0,0,0,0.1)',
+              background: '#fff',
+              fontWeight: 600,
+              fontSize: '13px',
+              cursor: 'pointer'
+            }}
+          >
+            {languages.map(l => (
+              <option key={l.code} value={l.code}>{l.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Mass Precision Slider */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: 700 }}>Atomic Mass Precision</div>
+            <div style={{ fontSize: '13px', color: '#666' }}>Decimal places for atomic weight display ({settings.massPrecision || 3} decimals)</div>
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="4"
+            value={settings.massPrecision || 3}
+            onChange={(e) => setSettings({ ...settings, massPrecision: Number(e.target.value) })}
+            style={{ width: '120px', cursor: 'pointer' }}
+          />
+        </div>
+
+        {/* Reduced Motion Toggle */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Zap size={16} /> Motion & Animation Effects
+            </div>
+            <div style={{ fontSize: '13px', color: '#666' }}>Enable or reduce 3D orbit animations for performance</div>
+          </div>
+          <button
+            onClick={() => setSettings({ ...settings, reduceMotion: !settings.reduceMotion })}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '8px',
+              border: 'none',
+              background: settings.reduceMotion ? '#ff9500' : '#34c759',
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+          >
+            {settings.reduceMotion ? 'Reduced Motion' : 'Full Motion (60 FPS)'}
+          </button>
+        </div>
+
         {/* Theme Mode */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <div style={{ fontSize: '15px', fontWeight: 700 }}>Appearance Theme</div>
             <div style={{ fontSize: '13px', color: '#666' }}>Switch between Light and Dark interface theme</div>
@@ -67,7 +146,7 @@ export const SettingsView: React.FC = () => {
         </div>
 
         {/* Custom Layout Button */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <div style={{ fontSize: '15px', fontWeight: 700 }}>Card Layout Customizer</div>
             <div style={{ fontSize: '13px', color: '#666' }}>Customize periodic table element card geometry & fonts</div>
