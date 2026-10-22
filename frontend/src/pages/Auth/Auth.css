@@ -1,0 +1,30 @@
+.auth-page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-footer-text {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  width: 100%;
+}
+
+.auth-footer-text a {
+  font-weight: 500;
+  margin-left: 0.25rem;
+}
+

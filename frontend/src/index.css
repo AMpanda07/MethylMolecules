@@ -1,33 +1,136 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* ==========================================================================
+   Methyl Orange — Global Styles & Design System Tokens
+   ========================================================================== */
 
 :root {
+  /* Brand colors */
   --color-primary: #e8520a;
+  --color-primary-hover: #f36420;
   --color-primary-dark: #c04308;
-  --color-bg: #0d0d0d;
-  --color-surface: #1a1a1a;
-  --color-text: #f5f5f5;
-  --color-text-muted: #888;
-  --font-main: 'Inter', sans-serif;
+  --color-primary-light: rgba(232, 82, 10, 0.12);
+
+  /* Backgrounds & surfaces */
+  --color-bg: #0d0f12;
+  --color-surface: #15181e;
+  --color-surface-hover: #1c2128;
+  --color-surface-elevated: #222731;
+
+  /* Borders */
+  --color-border: #262c36;
+  --color-border-hover: #373e4b;
+  --color-border-focus: var(--color-primary);
+
+  /* Typography */
+  --color-text: #f0f3f6;
+  --color-text-secondary: #9da7b3;
+  --color-text-muted: #6b7684;
+
+  /* Status colors */
+  --color-success: #10b981;
+  --color-success-bg: rgba(16, 185, 129, 0.12);
+  --color-error: #ef4444;
+  --color-error-bg: rgba(239, 68, 68, 0.12);
+  --color-warning: #f59e0b;
+  --color-warning-bg: rgba(245, 158, 11, 0.12);
+  --color-info: #3b82f6;
+  --color-info-bg: rgba(59, 130, 246, 0.12);
+
+  /* Fonts & Shadows */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 12px 0 rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  min-height: 100%;
 }
 
 body {
-  font-family: var(--font-main);
+  font-family: var(--font-family);
   background-color: var(--color-bg);
   color: var(--color-text);
-  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
-  color: inherit;
+  color: var(--color-primary);
   text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
 }
 
 button {
   cursor: pointer;
+  background: none;
   border: none;
-  outline: none;
+}
+
+/* App Layout Structure */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  width: 100%;
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* Utility Animations */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

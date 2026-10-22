@@ -25,20 +25,24 @@ Methyl Orange/
 │   ├── public/                # Static public assets
 │   ├── src/
 │   │   ├── assets/            # Images, icons, fonts
-│   │   ├── components/        # Shared/reusable components
-│   │   ├── context/           # React context providers
-│   │   ├── hooks/             # Custom React hooks
-│   │   ├── pages/
-│   │   │   └── Home.jsx       # Home page
-│   │   ├── services/
-│   │   │   └── api.js         # Axios instance with JWT interceptor
-│   │   ├── utils/             # Helper functions
-│   │   ├── App.jsx            # Root component + routing
-│   │   ├── index.css          # Global styles
+│   │   ├── components/        # Modular UI components
+│   │   │   ├── common/        # Atomic UI primitives (Button, Input, Card, Spinner, Alert)
+│   │   │   ├── layout/        # Layout shells (Navbar, Footer, MainLayout)
+│   │   │   └── routing/       # Route guards (ProtectedRoute, GuestRoute)
+│   │   ├── constants/         # Route paths, API endpoints & storage keys
+│   │   ├── context/           # React context providers (AuthContext, ToastContext)
+│   │   ├── hooks/             # Custom hooks (useAuth, useToast, useLocalStorage, useFetch)
+│   │   ├── pages/             # Route pages (Home, Login, Register, Dashboard, NotFound)
+│   │   ├── routes/            # Central router config (AppRoutes.jsx)
+│   │   ├── services/          # API layer with JWT interceptor (api.js, authService.js)
+│   │   ├── utils/             # Helper functions (storage, validators)
+│   │   ├── App.jsx            # App root wiring providers & routes
+│   │   ├── index.css          # Design system tokens, typography & resets
 │   │   └── main.jsx           # React entry point
+│   ├── jsconfig.json          # IDE path alias configuration (@/*)
 │   ├── index.html
 │   ├── package.json
-│   └── vite.config.js         # Vite config with API proxy
+│   └── vite.config.js         # Vite config with @ alias & API proxy
 │
 ├── .gitignore
 ├── package.json               # Root: concurrently dev script
