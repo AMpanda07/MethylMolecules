@@ -84,7 +84,7 @@ npm run dev:backend
 npm run dev:frontend
 ```
 
-## 🛠 Tech Stack
+## 🛠 Tech Stack and layer
 
 | Layer     | Technology          |
 |-----------|---------------------|
