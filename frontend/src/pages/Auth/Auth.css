@@ -4,11 +4,20 @@
   align-items: center;
   justify-content: center;
   padding: 3rem 1rem;
+  background-color: #000000;
 }
 
 .auth-card {
   width: 100%;
   max-width: 440px;
+  border-color: var(--color-border);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.95);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.auth-card:hover {
+  border-color: rgba(0, 240, 255, 0.3);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.95), 0 0 20px rgba(0, 240, 255, 0.08);
 }
 
 .auth-form {
@@ -26,5 +35,10 @@
 .auth-footer-text a {
   font-weight: 500;
   margin-left: 0.25rem;
+  color: var(--color-primary);
 }
 
+.auth-footer-text a:hover {
+  color: var(--color-primary-hover);
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+}

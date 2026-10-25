@@ -12,6 +12,7 @@
 .card--elevated {
   background-color: var(--color-surface-elevated);
   box-shadow: var(--shadow-md);
+  border-color: var(--color-border-hover);
 }
 
 .card__header {
@@ -42,10 +43,9 @@
 .card__footer {
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--color-border);
-  background-color: rgba(0, 0, 0, 0.15);
+  background-color: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
 }
-

@@ -1,6 +1,7 @@
 .dashboard-page {
   padding: 2.5rem 0 4rem;
   flex: 1;
+  background-color: #000000;
 }
 
 .dashboard__container {
@@ -31,25 +32,31 @@
   margin-top: 0.25rem;
 }
 
+.dashboard__subtitle strong {
+  color: var(--color-primary);
+}
+
 .dashboard__status-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: var(--color-success-bg);
-  color: var(--color-success);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background-color: rgba(0, 240, 255, 0.12);
+  color: var(--color-primary);
+  border: 1px solid rgba(0, 240, 255, 0.35);
   padding: 0.35rem 0.85rem;
   border-radius: var(--radius-full);
   font-size: 0.8125rem;
   font-weight: 600;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.15);
 }
 
 .dashboard__status-dot {
   width: 8px;
   height: 8px;
-  background-color: var(--color-success);
+  background-color: var(--color-primary);
   border-radius: 50%;
-  box-shadow: 0 0 6px var(--color-success);
+  box-shadow: 0 0 8px var(--color-primary);
+  animation: pulseGlow 2s infinite ease-in-out;
 }
 
 .dashboard__grid {
@@ -90,12 +97,13 @@
 .profile-field__badge {
   background-color: var(--color-primary-light);
   color: var(--color-primary);
-  border: 1px solid rgba(232, 82, 10, 0.3);
+  border: 1px solid rgba(0, 240, 255, 0.35);
   padding: 0.2rem 0.6rem;
   border-radius: var(--radius-sm);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .profile-field__mono {
@@ -118,18 +126,18 @@
 }
 
 .guide-item strong {
-  color: var(--color-text);
+  color: #ffffff;
 }
 
 .guide-item code {
-  background-color: rgba(255, 255, 255, 0.08);
-  padding: 0.15rem 0.4rem;
+  background-color: rgba(0, 240, 255, 0.08);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  padding: 0.15rem 0.45rem;
   border-radius: 4px;
   font-size: 0.8125rem;
-  color: #ffaa75;
+  color: var(--color-primary);
 }
 
 .dashboard__api-result {
   margin-top: 1rem;
 }
-
