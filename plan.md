@@ -28,11 +28,15 @@ frontend/src/
 ```
 
 ### ⚙️ Design & Modifiability Principles
-1. **Atomic UI Primitives (`components/common`)**: Agnostic to business logic; styled with CSS variables and parameterized with clean props (`variant`, `size`, `isLoading`, `error`).
-2. **Encapsulated API Communication (`services/`)**: Central Axios instance with automated Bearer token injection and centralized 401 Unauthorized handling.
-3. **Decoupled State Management (`context/` & `hooks/`)**: `AuthContext` and `ToastContext` expose ergonomic hooks (`useAuth`, `useToast`) so components remain lean.
-4. **Declarative Route Guards (`components/routing/`)**: `ProtectedRoute` and `GuestRoute` handle auth redirects consistently.
-5. **Path Aliasing**: Configured `@/` alias mapped directly to `/src` for maintainable imports.
+1. **Fully Black & Cyan Design System**:
+   - Pure black background (`#000000`) with obsidian surface layers (`#0a0d11`, `#131b23`).
+   - Vibrant electric cyan primary accents (`#00f0ff`) with glow effects (`--color-primary-glow`).
+   - High-contrast typography and neon status indicators (mint success, neon red error, amber warning).
+2. **Atomic UI Primitives (`components/common`)**: Agnostic to business logic; styled with CSS variables and parameterized with clean props (`variant`, `size`, `isLoading`, `error`).
+3. **Encapsulated API Communication (`services/`)**: Central Axios instance with automated Bearer token injection and centralized 401 Unauthorized handling.
+4. **Decoupled State Management (`context/` & `hooks/`)**: `AuthContext` and `ToastContext` expose ergonomic hooks (`useAuth`, `useToast`) so components remain lean.
+5. **Declarative Route Guards (`components/routing/`)**: `ProtectedRoute` and `GuestRoute` handle auth redirects consistently.
+6. **Path Aliasing**: Configured `@/` alias mapped directly to `/src` for maintainable imports.
 
 ---
 
