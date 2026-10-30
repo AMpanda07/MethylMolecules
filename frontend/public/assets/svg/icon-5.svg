@@ -1,0 +1,5 @@
+<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" color="rgb(29, 29, 31)" style="color: rgb(29, 29, 31);">
+                    <!-- Phone outline (portrait) -->
+                    <rect x="6" y="3" width="12" height="18" rx="2" ry="2"/>
+                    <line x1="12" y1="18" x2="12" y2="18.01"/>
+                </svg>

@@ -1,0 +1,7 @@
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" color="rgb(194, 65, 12)" style="color: rgb(194, 65, 12);">
+                                    <path d="M12 3v18"/>
+                                    <path d="M3 9l9-4 9 4"/>
+                                    <path d="M3 9v4c0 2 2 4 4 4s4-2 4-4"/>
+                                    <path d="M21 9v4c0 2-2 4-4 4s-4-2-4-4"/>
+                                    <line x1="8" y1="21" x2="16" y2="21"/>
+                                </svg>

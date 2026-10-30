@@ -1,0 +1,17 @@
+<svg class="slider-svg" viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg" width="103" height="103">
+                                            <defs>
+                                                <linearGradient id="bgLightnessGrad" gradientUnits="userSpaceOnUse" x1="180" y1="105.5" x2="180" y2="254.5">
+                                                    <stop offset="0" stop-color="#ffffff"/>
+                                                    <stop offset="0.35" stop-color="#F5B81E" class="gradMid"/>
+                                                    <stop offset="0.65" stop-color="#F5B81E" class="gradMid2"/>
+                                                    <stop offset="1" stop-color="#000000"/>
+                                                </linearGradient>
+                                            </defs>
+                                            <path class="slider-track-glow" d="M 332.8 105.5 A 170 170 0 0 1 332.8 254.5" fill="none" stroke-width="24" stroke-linecap="round"/>
+                                            <path class="slider-track" d="M 332.8 105.5 A 170 170 0 0 1 332.8 254.5" fill="none" stroke="url(#bgLightnessGrad)" stroke-width="20" stroke-linecap="round"/>
+                                            <g class="slider-handle-group">
+                                                <circle cx="0" cy="0" r="26" fill="transparent" class="slider-hitbox"/>
+                                                <circle cx="0" cy="0" r="14.5" fill="#fff" class="slider-thumb-outer"/>
+                                                <circle cx="0" cy="0" r="11.5" fill="#F5B81E" class="slider-thumb-inner"/>
+                                            </g>
+                                        </svg>

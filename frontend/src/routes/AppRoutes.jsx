@@ -6,6 +6,7 @@ import { GuestRoute } from '../components/routing/GuestRoute';
 
 // Page Views
 import { Home } from '../pages/Home/Home';
+import { PeriodicTablePage } from '../pages/PeriodicTable/PeriodicTable';
 import { Login } from '../pages/Auth/Login';
 import { Register } from '../pages/Auth/Register';
 import { Dashboard } from '../pages/Dashboard/Dashboard';
@@ -17,6 +18,9 @@ import { NotFound } from '../pages/NotFound/NotFound';
 export const AppRoutes = () => {
   return (
     <Routes>
+      {/* Standalone Zperiod periodic table experience */}
+      <Route path="/table" element={<PeriodicTablePage />} />
+
       <Route element={<MainLayout />}>
         {/* Public Routes */}
         <Route path={ROUTES.HOME} element={<Home />} />
