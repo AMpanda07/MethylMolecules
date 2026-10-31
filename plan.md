@@ -59,3 +59,4 @@ frontend/src/
 - [x] Test production build verification
 - [ ] Connect additional domain features & backend models as project scope grows
 
+vercel
