@@ -10,7 +10,7 @@ assets reference are in icon folder. apart from logo you can you any asset.
 ## phase 1
 ## Hero section
 hero sectio will contain a introduction featuring the features of the web application or take it as a guide.
-after that there will be full hero section just below nav bar. 
+after that there will be full hero section just below nav bar. .....
 every element of morden periodic table will be interactable. and when someone clicks the element it will open element details section like this "Morphing Dialog Basic from npx motion-primitives@latest add morphing-dialog" it will cover the full screen.
  
 # periodic table
